@@ -145,6 +145,8 @@ function PostSkeleton() {
 }
 
 export default function FeedPage() {
+  const discoverFeedUri =
+    'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot';
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'discover' | 'following'>('discover');
@@ -182,7 +184,10 @@ export default function FeedPage() {
       setError(null);
 
       try {
-        const result = await atprotoClient.getTimeline(refresh ? undefined : cursor, 30);
+        const result =
+          activeTab === 'discover'
+            ? await atprotoClient.getFeed(discoverFeedUri, refresh ? undefined : cursor, 30)
+            : await atprotoClient.getTimeline(refresh ? undefined : cursor, 30);
         if (result.success && result.data) {
           const feedPosts: FeedPost[] = result.data.map((item: any) => ({
             uri: item.post.uri,

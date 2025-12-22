@@ -116,6 +116,20 @@ class ATProtoClient {
     }
   }
 
+  async getFeed(feed: string, cursor?: string, limit: number = 30) {
+    try {
+      const response = await this.agent.app.bsky.feed.getFeed({ feed, cursor, limit });
+      return {
+        success: true,
+        data: response.data.feed,
+        cursor: response.data.cursor,
+      };
+    } catch (error: any) {
+      console.error('Get feed error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Fetch notifications using AT Protocol listNotifications endpoint
   async getNotifications(cursor?: string, limit: number = 30) {
     try {
