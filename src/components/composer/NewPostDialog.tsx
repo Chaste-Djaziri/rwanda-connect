@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Image as ImageIcon, Video, SmilePlus, X, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +12,7 @@ import { atprotoClient } from '@/lib/atproto';
 interface ImageAttachment {
   file: File;
   previewUrl: string;
+  isGif?: boolean;
   aspectRatio?: { width: number; height: number };
 }
 
@@ -38,6 +40,7 @@ const languageOptions = [
 ];
 
 const MAX_CHARS = 300;
+const GIPHY_API_KEY = import.meta.env.VITE_GIPHY_API_KEY || 'dc6zaTOxFJmzC';
 
 const loadImageDimensions = (file: File) =>
   new Promise<{ width: number; height: number }>((resolve) => {
@@ -68,6 +71,10 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
   const [language, setLanguage] = useState('auto');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gifQuery, setGifQuery] = useState('');
+  const [gifResults, setGifResults] = useState<Array<{ id: string; preview: string; original: string }>>([]);
+  const [isGifLoading, setIsGifLoading] = useState(false);
+  const [gifError, setGifError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
@@ -107,6 +114,53 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
     }
     setImages((prev) => [...prev, ...nextAttachments].slice(0, 4));
     event.target.value = '';
+  };
+
+  const fetchGifs = async (query?: string) => {
+    if (!GIPHY_API_KEY) {
+      setGifError('Add VITE_GIPHY_API_KEY to enable GIF search.');
+      return;
+    }
+    setGifError(null);
+    setIsGifLoading(true);
+    try {
+      const endpoint = query?.trim()
+        ? `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(
+            query
+          )}&limit=24&rating=pg`
+        : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=24&rating=pg`;
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      const gifs = (data?.data || []).map((gif: any) => ({
+        id: gif.id,
+        preview: gif.images?.fixed_width_small?.url || gif.images?.fixed_width?.url,
+        original: gif.images?.original?.url,
+      }));
+      setGifResults(gifs.filter((gif: any) => gif.preview && gif.original));
+    } catch (err) {
+      setGifError('Failed to load GIFs.');
+    } finally {
+      setIsGifLoading(false);
+    }
+  };
+
+  const addGifFromUrl = async (gif: { id: string; original: string }) => {
+    if (images.length >= 4) return;
+    setError(null);
+    setVideo(null);
+    try {
+      const response = await fetch(gif.original);
+      const blob = await response.blob();
+      const file = new File([blob], `gif-${gif.id}.gif`, { type: blob.type || 'image/gif' });
+      const previewUrl = URL.createObjectURL(file);
+      const { width, height } = await loadImageDimensions(file);
+      setImages((prev) => [
+        ...prev,
+        { file, previewUrl, aspectRatio: { width, height }, isGif: true },
+      ]);
+    } catch (err) {
+      setError('Failed to add GIF.');
+    }
   };
 
   const handleSelectVideo = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -151,6 +205,8 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
       setText('');
       setImages([]);
       setVideo(null);
+      setGifQuery('');
+      setGifResults([]);
       setOpen(false);
     } catch (err) {
       setError('Failed to post.');
@@ -211,8 +267,55 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
                   disabled={Boolean(video) || images.length >= 4}
                 >
                   <ImageIcon className="w-4 h-4 mr-2" />
-                  Images / GIFs
+                  Images
                 </Button>
+                <Popover onOpenChange={(open) => open && fetchGifs(gifQuery)}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" size="sm" disabled={Boolean(video) || images.length >= 4}>
+                      <span className="mr-2 text-base">GIF</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <div className="space-y-3">
+                      <form
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          fetchGifs(gifQuery);
+                        }}
+                        className="flex gap-2"
+                      >
+                        <Input
+                          value={gifQuery}
+                          onChange={(event) => setGifQuery(event.target.value)}
+                          placeholder="Search GIFs"
+                        />
+                        <Button type="submit" size="sm">
+                          Search
+                        </Button>
+                      </form>
+                      {gifError && <p className="text-xs text-destructive">{gifError}</p>}
+                      {isGifLoading ? (
+                        <p className="text-xs text-muted-foreground">Loading GIFs...</p>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
+                          {gifResults.map((gif) => (
+                            <button
+                              key={gif.id}
+                              type="button"
+                              onClick={() => addGifFromUrl(gif)}
+                              className="rounded-md overflow-hidden border border-border"
+                            >
+                              <img src={gif.preview} alt="GIF preview" className="w-full h-20 object-cover" />
+                            </button>
+                          ))}
+                          {!gifResults.length && !gifError && (
+                            <p className="col-span-3 text-xs text-muted-foreground">No GIFs found.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <Button
                   type="button"
                   variant="outline"
@@ -269,6 +372,11 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
               {images.map((image, index) => (
                 <div key={image.previewUrl} className="relative rounded-xl overflow-hidden border border-border">
                   <img src={image.previewUrl} alt={`Upload ${index + 1}`} className="w-full h-40 object-cover" />
+                  {image.isGif && (
+                    <span className="absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">
+                      GIF
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => setImages((prev) => prev.filter((item) => item.previewUrl !== image.previewUrl))}
