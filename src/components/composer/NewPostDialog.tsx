@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Image as ImageIcon, Video, SmilePlus, X, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +43,21 @@ const languageOptions = [
 
 const MAX_CHARS = 300;
 const GIPHY_API_KEY = import.meta.env.VITE_GIPHY_API_KEY || 'dc6zaTOxFJmzC';
+const DEFAULTS_KEY = 'hillside_post_defaults';
+
+type ReplySetting = 'anyone' | 'nobody' | 'followers' | 'following' | 'mentioned' | 'list';
+
+interface InteractionDefaults {
+  replySetting: ReplySetting;
+  allowQuotePosts: boolean;
+  listUris: string[];
+}
+
+const defaultInteraction: InteractionDefaults = {
+  replySetting: 'anyone',
+  allowQuotePosts: true,
+  listUris: [],
+};
 
 const loadImageDimensions = (file: File) =>
   new Promise<{ width: number; height: number }>((resolve) => {
@@ -75,12 +92,62 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
   const [gifResults, setGifResults] = useState<Array<{ id: string; preview: string; original: string }>>([]);
   const [isGifLoading, setIsGifLoading] = useState(false);
   const [gifError, setGifError] = useState<string | null>(null);
+  const [replySetting, setReplySetting] = useState<ReplySetting>('anyone');
+  const [allowQuotePosts, setAllowQuotePosts] = useState(true);
+  const [listUris, setListUris] = useState<string[]>([]);
+  const [lists, setLists] = useState<Array<{ uri: string; name: string }>>([]);
+  const [isListsLoading, setIsListsLoading] = useState(false);
+  const [listsError, setListsError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
 
   const remainingChars = useMemo(() => MAX_CHARS - text.length, [text.length]);
   const canSubmit = (text.trim().length > 0 || images.length > 0 || video) && remainingChars >= 0;
+
+  useEffect(() => {
+    if (!open) return;
+    const stored = localStorage.getItem(DEFAULTS_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as InteractionDefaults;
+        setReplySetting(parsed.replySetting || 'anyone');
+        setAllowQuotePosts(parsed.allowQuotePosts ?? true);
+        setListUris(parsed.listUris || []);
+      } catch {
+        setReplySetting('anyone');
+        setAllowQuotePosts(true);
+        setListUris([]);
+      }
+    } else {
+      setReplySetting(defaultInteraction.replySetting);
+      setAllowQuotePosts(defaultInteraction.allowQuotePosts);
+      setListUris(defaultInteraction.listUris);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!user?.did && !user?.handle) return;
+    setIsListsLoading(true);
+    setListsError(null);
+    atprotoClient
+      .getActorLists(user?.did || user?.handle || '')
+      .then((result) => {
+        if (result.success && result.data) {
+          setLists(
+            result.data.map((list: any) => ({
+              uri: list.uri,
+              name: list.name || list.displayName || 'List',
+            }))
+          );
+        } else {
+          setLists([]);
+        }
+      })
+      .catch(() => setListsError('Failed to load lists.'))
+      .finally(() => setIsListsLoading(false));
+  }, [open, user?.did, user?.handle]);
 
   const insertEmoji = (emoji: string) => {
     const target = textareaRef.current;
@@ -195,6 +262,11 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
               aspectRatio: video.aspectRatio,
             }
           : undefined,
+        interaction: {
+          reply: replySetting,
+          allowQuotePosts,
+          listUris,
+        },
       });
 
       if (!result.success) {
@@ -213,6 +285,15 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSaveDefaults = () => {
+    const payload: InteractionDefaults = {
+      replySetting,
+      allowQuotePosts,
+      listUris,
+    };
+    localStorage.setItem(DEFAULTS_KEY, JSON.stringify(payload));
   };
 
   return (
@@ -401,6 +482,81 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
               </button>
             </div>
           )}
+
+          <div className="rounded-xl border border-border/70 p-4 space-y-3 bg-muted/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Post interaction settings</p>
+                <p className="text-xs text-muted-foreground">These are your default settings</p>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={handleSaveDefaults}>
+                Save
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Who can reply
+              </label>
+              <Select value={replySetting} onValueChange={(value) => setReplySetting(value as ReplySetting)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Who can reply" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="anyone">Anyone</SelectItem>
+                  <SelectItem value="nobody">Nobody</SelectItem>
+                  <SelectItem value="followers">Your followers</SelectItem>
+                  <SelectItem value="following">People you follow</SelectItem>
+                  <SelectItem value="mentioned">People you mention</SelectItem>
+                  <SelectItem value="list">Select from your lists</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {replySetting === 'list' && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Select from your lists
+                </p>
+                {listsError && <p className="text-xs text-destructive">{listsError}</p>}
+                {isListsLoading ? (
+                  <p className="text-xs text-muted-foreground">Loading lists...</p>
+                ) : lists.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No lists available.</p>
+                ) : (
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                    {lists.map((list) => {
+                      const checked = listUris.includes(list.uri);
+                      return (
+                        <label key={list.uri} className="flex items-center gap-2 text-sm text-foreground">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(value) => {
+                              setListUris((prev) => {
+                                if (value) {
+                                  return prev.includes(list.uri) ? prev : [...prev, list.uri];
+                                }
+                                return prev.filter((uri) => uri !== list.uri);
+                              });
+                            }}
+                          />
+                          {list.name}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">Allow quote posts</p>
+                <p className="text-xs text-muted-foreground">Control if others can quote this post</p>
+              </div>
+              <Switch checked={allowQuotePosts} onCheckedChange={setAllowQuotePosts} />
+            </div>
+          </div>
 
           {error && (
             <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">

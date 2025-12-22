@@ -107,6 +107,7 @@ class ATProtoClient {
     langs,
     images,
     video,
+    interaction,
   }: {
     text: string;
     langs?: string[];
@@ -118,6 +119,11 @@ class ATProtoClient {
     video?: {
       file: Blob;
       aspectRatio?: { width: number; height: number };
+    };
+    interaction?: {
+      reply?: 'anyone' | 'nobody' | 'followers' | 'following' | 'mentioned' | 'list';
+      listUris?: string[];
+      allowQuotePosts?: boolean;
     };
   }) {
     try {
@@ -164,6 +170,70 @@ class ATProtoClient {
       }
 
       const response = await this.agent.post(record);
+      const postUri = response.data.uri;
+      const repo = this.agent.session?.did;
+      const rkey = postUri.split('/').pop();
+
+      if (interaction && repo && rkey) {
+        const allowQuotePosts = interaction.allowQuotePosts ?? true;
+        const replySetting = interaction.reply ?? 'anyone';
+
+        let allowRules:
+          | Array<
+              | { $type: 'app.bsky.feed.threadgate#mentionRule' }
+              | { $type: 'app.bsky.feed.threadgate#followerRule' }
+              | { $type: 'app.bsky.feed.threadgate#followingRule' }
+              | { $type: 'app.bsky.feed.threadgate#listRule'; list: string }
+            >
+          | undefined;
+
+        if (replySetting === 'nobody') {
+          allowRules = [];
+        } else if (replySetting === 'followers') {
+          allowRules = [{ $type: 'app.bsky.feed.threadgate#followerRule' }];
+        } else if (replySetting === 'following') {
+          allowRules = [{ $type: 'app.bsky.feed.threadgate#followingRule' }];
+        } else if (replySetting === 'mentioned') {
+          allowRules = [{ $type: 'app.bsky.feed.threadgate#mentionRule' }];
+        } else if (replySetting === 'list') {
+          allowRules =
+            interaction.listUris?.length && interaction.listUris.length > 0
+              ? interaction.listUris.map((list) => ({
+                  $type: 'app.bsky.feed.threadgate#listRule' as const,
+                  list,
+                }))
+              : [];
+        }
+
+        if (replySetting !== 'anyone') {
+          await this.agent.com.atproto.repo.createRecord({
+            repo,
+            collection: 'app.bsky.feed.threadgate',
+            rkey,
+            record: {
+              $type: 'app.bsky.feed.threadgate',
+              post: postUri,
+              allow: allowRules,
+              createdAt: new Date().toISOString(),
+            },
+          });
+        }
+
+        if (!allowQuotePosts) {
+          await this.agent.com.atproto.repo.createRecord({
+            repo,
+            collection: 'app.bsky.feed.postgate',
+            rkey,
+            record: {
+              $type: 'app.bsky.feed.postgate',
+              post: postUri,
+              embeddingRules: [{ $type: 'app.bsky.feed.postgate#disableRule' }],
+              createdAt: new Date().toISOString(),
+            },
+          });
+        }
+      }
+
       return { success: true, data: response.data };
     } catch (error: any) {
       console.error('Create post error:', error);
