@@ -115,6 +115,7 @@ function FeedCard({
 }) {
   const feedId = feed.uri?.split('/').pop();
   const route = feedId ? `/profile/${feed.creator?.handle}/feed/${feedId}` : '#';
+  const isPinned = Boolean(feed.viewer?.pinned);
   return (
     <Link to={route} className="block p-4 border-b border-border hover:bg-muted/30 transition-colors">
       <div className="flex gap-3">
@@ -157,7 +158,7 @@ function FeedCard({
             }}
             disabled={isPinning}
           >
-            Pin Feed
+            {isPinned ? 'Unpin' : 'Pin Feed'}
           </Button>
         </div>
       </div>
@@ -473,7 +474,12 @@ export default function ProfilePage() {
   const handlePinFeed = async (uri: string) => {
     if (pinningFeedUri) return;
     setPinningFeedUri(uri);
-    await atprotoClient.pinFeed(uri, 'feed');
+    const currentFeed = tabData.feeds.items.find((item: any) => item.uri === uri);
+    if (currentFeed?.viewer?.pinned) {
+      await atprotoClient.unpinFeed(uri, 'feed');
+    } else {
+      await atprotoClient.pinFeed(uri, 'feed');
+    }
     setPinningFeedUri(null);
   };
 

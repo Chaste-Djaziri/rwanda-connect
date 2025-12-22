@@ -687,6 +687,27 @@ class ATProtoClient {
     }
   }
 
+  async unpinFeed(value: string, type: 'feed' | 'list' | 'timeline' = 'feed') {
+    try {
+      const prefsResult = await this.getPreferences();
+      const existingPrefs = prefsResult.success && prefsResult.data ? prefsResult.data : [];
+      const savedPref = existingPrefs.find(
+        (pref: any) =>
+          pref?.$type === 'app.bsky.actor.defs#savedFeedsPrefV2' ||
+          pref?.$type === 'app.bsky.actor.defs#savedFeedsPref'
+      );
+      const items: Array<{ id: string; type: string; value: string; pinned: boolean }> = savedPref?.items || [];
+      const nextItems = items.map((item) =>
+        item.value === value && item.type === type ? { ...item, pinned: false } : item
+      );
+      await this.updateSavedFeeds(nextItems);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Unpin feed error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Get popular/suggested feed for explore (using getSuggestedFeeds as documented)
   async getSuggestedFeeds(cursor?: string, limit: number = 30) {
     try {
