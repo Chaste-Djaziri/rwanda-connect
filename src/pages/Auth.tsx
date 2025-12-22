@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2, AlertCircle, Lock, AtSign } from 'lucide-react';
 import { z } from 'zod';
 import { atprotoClient } from '@/lib/atproto';
+import { AtpSessionData } from '@atproto/api';
 
 const loginSchema = z.object({
   identifier: z.string()
@@ -23,13 +24,15 @@ const loginSchema = z.object({
 
 export default function AuthPage() {
   const navigate = useNavigate();
-  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading, switchAccount } = useAuth();
   
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [suggestions, setSuggestions] = useState<Array<{ handle: string; displayName?: string; avatar?: string }>>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [savedAccounts, setSavedAccounts] = useState<AtpSessionData[]>([]);
+  const [showLoginForm, setShowLoginForm] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -68,6 +71,12 @@ export default function AuthPage() {
       clearTimeout(timeout);
     };
   }, [identifier]);
+
+  useEffect(() => {
+    const sessions = atprotoClient.getStoredSessions();
+    setSavedAccounts(sessions);
+    setShowLoginForm(sessions.length === 0);
+  }, []);
 
   if (authLoading) {
     return (
@@ -148,139 +157,189 @@ export default function AuthPage() {
 
           {/* Login Form */}
           <div className="surface-elevated rounded-2xl p-8 shadow-card border border-border/50">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="identifier" className="text-sm font-medium text-foreground">
-                  Bluesky Handle
-                </label>
-                <div className="relative">
-                  <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="identifier"
-                    type="text"
-                    placeholder="yourhandle.bsky.social"
-                    value={identifier}
-                    onChange={(e) => {
-                      setIdentifier(e.target.value);
-                      setShowSuggestions(true);
-                    }}
-                    onFocus={() => setShowSuggestions(true)}
-                    onBlur={() => {
-                      setTimeout(() => setShowSuggestions(false), 150);
-                    }}
-                    className="pl-11"
-                    disabled={isLoading}
-                    autoComplete="username"
-                    autoFocus
-                  />
-                  {showSuggestions && (isSuggesting || suggestions.length > 0) && (
-                    <div className="absolute left-0 right-0 mt-2 rounded-xl border border-border bg-background shadow-card z-20">
-                      {isSuggesting ? (
-                        <div className="p-3 space-y-2">
-                          {[...Array(3)].map((_, i) => (
-                            <div key={i} className="flex items-center gap-3">
-                              <Skeleton className="h-8 w-8 rounded-full" />
-                              <div className="space-y-1 flex-1">
-                                <Skeleton className="h-3 w-24" />
-                                <Skeleton className="h-3 w-32" />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="py-2">
-                          {suggestions.map((actor) => (
-                            <button
-                              type="button"
-                              key={actor.handle}
-                              onClick={() => {
-                                setIdentifier(actor.handle);
-                                setShowSuggestions(false);
-                              }}
-                              className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-muted/40 transition-colors"
-                            >
-                              <div className="h-8 w-8 rounded-full overflow-hidden bg-muted shrink-0">
-                                {actor.avatar ? (
-                                  <img
-                                    src={actor.avatar}
-                                    alt={actor.displayName || actor.handle}
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="h-full w-full flex items-center justify-center text-xs font-semibold text-muted-foreground">
-                                    {actor.handle[0]?.toUpperCase()}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-foreground truncate">
-                                  {actor.displayName || actor.handle}
-                                </p>
-                                <p className="text-xs text-muted-foreground truncate">@{actor.handle}</p>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+            {!showLoginForm && savedAccounts.length > 0 ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h2 className="text-lg font-semibold text-foreground">Continue as</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Choose an account or add another.
+                  </p>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-foreground">
-                  App Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="xxxx-xxxx-xxxx-xxxx"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-11"
-                    disabled={isLoading}
-                    autoComplete="current-password"
-                  />
+                <div className="space-y-2">
+                  {savedAccounts.map((account) => (
+                    <button
+                      key={account.did}
+                      type="button"
+                      onClick={async () => {
+                        setIsLoading(true);
+                        setError(null);
+                        const ok = await switchAccount(account);
+                        setIsLoading(false);
+                        if (ok) {
+                          navigate('/feed', { replace: true });
+                        } else {
+                          setError('Failed to switch account. Please sign in again.');
+                        }
+                      }}
+                      className="w-full flex items-center gap-3 rounded-xl border border-border px-4 py-3 hover:bg-muted/40 transition-colors text-left"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground">
+                        {account.handle?.[0]?.toUpperCase() ?? 'H'}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-foreground truncate">@{account.handle}</p>
+                        <p className="text-xs text-muted-foreground truncate">{account.did}</p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Create an app password at{' '}
-                  <a 
-                    href="https://bsky.app/settings/app-passwords" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    bsky.app/settings
-                  </a>
-                </p>
-              </div>
 
-              {error && (
-                <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
-                  <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                  <p className="text-sm text-destructive">{error}</p>
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                variant="brand"
-                size="lg"
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  'Sign in with Bluesky'
+                {error && (
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+                    <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                    <p className="text-sm text-destructive">{error}</p>
+                  </div>
                 )}
-              </Button>
-            </form>
+
+                <Button type="button" variant="brand" size="lg" className="w-full" onClick={() => setShowLoginForm(true)}>
+                  Add another account
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <label htmlFor="identifier" className="text-sm font-medium text-foreground">
+                    Bluesky Handle
+                  </label>
+                  <div className="relative">
+                    <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="identifier"
+                      type="text"
+                      placeholder="yourhandle.bsky.social"
+                      value={identifier}
+                      onChange={(e) => {
+                        setIdentifier(e.target.value);
+                        setShowSuggestions(true);
+                      }}
+                      onFocus={() => setShowSuggestions(true)}
+                      onBlur={() => {
+                        setTimeout(() => setShowSuggestions(false), 150);
+                      }}
+                      className="pl-11"
+                      disabled={isLoading}
+                      autoComplete="username"
+                      autoFocus
+                    />
+                    {showSuggestions && (isSuggesting || suggestions.length > 0) && (
+                      <div className="absolute left-0 right-0 mt-2 rounded-xl border border-border bg-background shadow-card z-20">
+                        {isSuggesting ? (
+                          <div className="p-3 space-y-2">
+                            {[...Array(3)].map((_, i) => (
+                              <div key={i} className="flex items-center gap-3">
+                                <Skeleton className="h-8 w-8 rounded-full" />
+                                <div className="space-y-1 flex-1">
+                                  <Skeleton className="h-3 w-24" />
+                                  <Skeleton className="h-3 w-32" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="py-2">
+                            {suggestions.map((actor) => (
+                              <button
+                                type="button"
+                                key={actor.handle}
+                                onClick={() => {
+                                  setIdentifier(actor.handle);
+                                  setShowSuggestions(false);
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-muted/40 transition-colors"
+                              >
+                                <div className="h-8 w-8 rounded-full overflow-hidden bg-muted shrink-0">
+                                  {actor.avatar ? (
+                                    <img
+                                      src={actor.avatar}
+                                      alt={actor.displayName || actor.handle}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="h-full w-full flex items-center justify-center text-xs font-semibold text-muted-foreground">
+                                      {actor.handle[0]?.toUpperCase()}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-foreground truncate">
+                                    {actor.displayName || actor.handle}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground truncate">@{actor.handle}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="password" className="text-sm font-medium text-foreground">
+                    App Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="xxxx-xxxx-xxxx-xxxx"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-11"
+                      disabled={isLoading}
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Create an app password at{' '}
+                    <a 
+                      href="https://bsky.app/settings/app-passwords" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      bsky.app/settings
+                    </a>
+                  </p>
+                </div>
+
+                {error && (
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+                    <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                    <p className="text-sm text-destructive">{error}</p>
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  variant="brand"
+                  size="lg"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    'Sign in with Bluesky'
+                  )}
+                </Button>
+              </form>
+            )}
 
             <div className="mt-6 pt-6 border-t border-border">
               <p className="text-center text-sm text-muted-foreground">

@@ -19,6 +19,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   initChatSession: (identifier: string, password: string) => Promise<boolean>;
+  switchAccount: (session: AtpSessionData) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -92,6 +93,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const switchAccount = useCallback(
+    async (session: AtpSessionData) => {
+      setIsChatSessionLoading(true);
+      try {
+        const ok = await atprotoClient.switchSession(session);
+        if (!ok) return false;
+        await refreshUser();
+        try {
+          await chatApi.checkSession();
+          setHasChatSession(true);
+        } catch {
+          setHasChatSession(false);
+        }
+        return true;
+      } catch (error) {
+        console.error('Switch account error:', error);
+        return false;
+      } finally {
+        setIsChatSessionLoading(false);
+      }
+    },
+    [refreshUser]
+  );
+
   const login = async (identifier: string, password: string) => {
     const result = await atprotoClient.login(identifier, password);
     if (result.success) {
@@ -119,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         refreshUser,
         initChatSession,
+        switchAccount,
       }}
     >
       {children}

@@ -2,6 +2,7 @@ import { BskyAgent, AtpSessionData, AtpSessionEvent, RichText } from '@atproto/a
 
 const PUBLIC_API = 'https://public.api.bsky.app';
 const BSKY_SERVICE = 'https://bsky.social';
+const SESSIONS_KEY = 'atproto_sessions';
 
 class ATProtoClient {
   private agent: BskyAgent;
@@ -15,6 +16,7 @@ class ATProtoClient {
           this.session = sess || null;
           if (sess) {
             localStorage.setItem('atproto_session', JSON.stringify(sess));
+            this.storeSession(sess);
           }
         } else if (evt === 'expired') {
           this.session = null;
@@ -36,6 +38,19 @@ class ATProtoClient {
     } catch (error) {
       console.error('Failed to resume session:', error);
       localStorage.removeItem('atproto_session');
+      return false;
+    }
+  }
+
+  async switchSession(sessionData: AtpSessionData): Promise<boolean> {
+    try {
+      await this.agent.resumeSession(sessionData);
+      this.session = sessionData;
+      localStorage.setItem('atproto_session', JSON.stringify(sessionData));
+      this.storeSession(sessionData);
+      return true;
+    } catch (error) {
+      console.error('Failed to switch session:', error);
       return false;
     }
   }
@@ -71,6 +86,34 @@ class ATProtoClient {
   async logout(): Promise<void> {
     this.session = null;
     localStorage.removeItem('atproto_session');
+  }
+
+  getStoredSessions(): AtpSessionData[] {
+    try {
+      const stored = localStorage.getItem(SESSIONS_KEY);
+      if (!stored) return [];
+      const sessions = JSON.parse(stored) as AtpSessionData[];
+      return Array.isArray(sessions) ? sessions : [];
+    } catch (error) {
+      console.error('Failed to read stored sessions:', error);
+      return [];
+    }
+  }
+
+  storeSession(sessionData: AtpSessionData) {
+    const sessions = this.getStoredSessions();
+    const existing = sessions.findIndex((sess) => sess.did === sessionData.did);
+    if (existing >= 0) {
+      sessions[existing] = sessionData;
+    } else {
+      sessions.unshift(sessionData);
+    }
+    localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions.slice(0, 10)));
+  }
+
+  removeStoredSession(did: string) {
+    const sessions = this.getStoredSessions().filter((sess) => sess.did !== did);
+    localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
   }
 
   isAuthenticated(): boolean {
