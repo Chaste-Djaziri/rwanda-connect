@@ -36,7 +36,7 @@ export default function Index() {
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
-            <span className="text-xl font-semibold text-foreground">Imvura</span>
+            <span className="text-xl font-semibold text-foreground">Hillside</span>
           </div>
           
           {!isLoading && (
@@ -59,7 +59,7 @@ export default function Index() {
             </div>
             
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-foreground leading-[1.1] mb-6">
-              Rwanda's Voice,{' '}
+              Your Voice,{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
                 Decentralized
               </span>
@@ -124,10 +124,10 @@ export default function Index() {
                 <Users className="w-6 h-6 text-primary" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                Rwanda First
+                Community First
               </h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Designed for Rwandan voices. A platform that respects African digital sovereignty.
+                Designed for open communities. A platform that respects user ownership and choice.
               </p>
             </div>
           </div>
@@ -138,7 +138,7 @@ export default function Index() {
       <footer className="relative z-10 border-t border-border py-8">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2024 Imvura. Built with AT Protocol.
+            © 2024 Hillside. Built with AT Protocol.
           </p>
           <div className="flex items-center gap-6">
             <a 

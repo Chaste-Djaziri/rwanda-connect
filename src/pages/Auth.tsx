@@ -98,10 +98,10 @@ export default function AuthPage() {
               </svg>
             </div>
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Imvura
+              Hillside
             </h1>
             <p className="text-muted-foreground">
-              Rwanda's decentralized social platform
+              A modern, decentralized social platform
             </p>
           </div>
 
@@ -200,7 +200,7 @@ export default function AuthPage() {
 
           {/* Footer note */}
           <p className="text-center text-xs text-muted-foreground mt-8">
-            Powered by the AT Protocol • Built for Rwanda
+            Powered by the AT Protocol
           </p>
         </div>
       </main>

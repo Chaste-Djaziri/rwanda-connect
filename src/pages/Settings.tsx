@@ -127,10 +127,10 @@ export default function SettingsPage() {
 
         {/* App Info */}
         <div className="p-6 text-center">
-          <p className="text-sm text-muted-foreground">Imvura v1.0.0</p>
+          <p className="text-sm text-muted-foreground">Hillside v1.0.0</p>
           <p className="text-xs text-muted-foreground mt-1">Built on AT Protocol</p>
           <p className="text-xs text-muted-foreground mt-4">
-            © 2024 Imvura · Rwanda
+            © 2025 Hillside · Social
           </p>
         </div>
       </div>
