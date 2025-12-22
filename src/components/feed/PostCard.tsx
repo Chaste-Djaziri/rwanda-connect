@@ -169,7 +169,9 @@ function ImageGrid({ images }: { images: any[] }) {
       ? 'inline-flex'
       : imageCount === 2
         ? 'grid grid-cols-2 aspect-[4/3]'
-        : 'grid grid-cols-2 grid-rows-2 aspect-[4/3]';
+        : imageCount === 3
+          ? 'grid grid-cols-[0.85fr_1.15fr] grid-rows-2 aspect-[4/3]'
+          : 'grid grid-cols-2 grid-rows-2 aspect-[4/3]';
 
   return (
     <>
