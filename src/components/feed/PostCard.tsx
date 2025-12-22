@@ -166,7 +166,6 @@ const renderEmbed = (embed?: any) => {
 
 function VideoPlayer({ src, poster }: { src: string; poster?: string }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -178,31 +177,14 @@ function VideoPlayer({ src, poster }: { src: string; poster?: string }) {
 
     const handleTime = () => setCurrentTime(video.currentTime);
     const handleDuration = () => setDuration(video.duration || 0);
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
 
     video.addEventListener('timeupdate', handleTime);
     video.addEventListener('loadedmetadata', handleDuration);
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-
     return () => {
       video.removeEventListener('timeupdate', handleTime);
       video.removeEventListener('loadedmetadata', handleDuration);
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
     };
   }, []);
-
-  const togglePlay = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      video.play();
-    } else {
-      video.pause();
-    }
-  };
 
   const toggleMute = () => {
     const video = videoRef.current;
@@ -263,42 +245,12 @@ function VideoPlayer({ src, poster }: { src: string; poster?: string }) {
         ref={videoRef}
         poster={poster}
         className="w-full max-h-96 bg-black"
-        onClick={togglePlay}
+        onClick={toggleMute}
       >
         <source src={src} />
       </video>
-      {!isPlaying && (
-        <button
-          type="button"
-          onClick={togglePlay}
-          className="absolute inset-0 flex items-center justify-center"
-          aria-label="Play video"
-        >
-          <div className="h-14 w-14 rounded-full bg-black/60 flex items-center justify-center text-white">
-            <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </div>
-        </button>
-      )}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3">
         <div className="flex items-center gap-3 text-xs text-white">
-          <button
-            type="button"
-            onClick={togglePlay}
-            className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 transition-colors"
-            aria-label={isPlaying ? 'Pause' : 'Play'}
-          >
-            {isPlaying ? (
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-                <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            )}
-          </button>
           <button
             type="button"
             onClick={toggleMute}
