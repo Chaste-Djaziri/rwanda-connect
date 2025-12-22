@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Navigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, User, Home, MessageSquare, Heart, Repeat2 } from 'lucide-react';
+import { RefreshCw, Home, MessageSquare, Heart, Repeat2 } from 'lucide-react';
 
 interface FeedPost {
   uri: string;
@@ -129,7 +129,6 @@ function PostSkeleton() {
 }
 
 export default function FeedPage() {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -183,74 +182,28 @@ export default function FeedPage() {
   }, [cursor]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchFeed(true);
-    }
-  }, [isAuthenticated]);
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
-  }
+    fetchFeed(true);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppLayout>
       {/* Header */}
-      <header className="sticky top-0 z-50 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-              <svg 
-                viewBox="0 0 24 24" 
-                className="w-4 h-4 text-primary-foreground"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </div>
-            <h1 className="font-semibold text-foreground text-lg">Imvura</h1>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => fetchFeed(true)}
-              disabled={isRefreshing}
-              className="relative"
-            >
-              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
-            <Link to="/profile">
-              <Button variant="ghost" size="icon">
-                {user?.avatar ? (
-                  <img 
-                    src={user.avatar} 
-                    alt={user.displayName || user.handle}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <User className="w-5 h-5" />
-                )}
-              </Button>
-            </Link>
-          </div>
+      <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
+        <div className="px-4 h-14 flex items-center justify-between">
+          <h1 className="font-semibold text-foreground text-lg">Home</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => fetchFeed(true)}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
       </header>
 
       {/* Feed */}
-      <main className="max-w-2xl mx-auto">
+      <div className="animate-fade-in">
         {error && (
           <div className="p-4 m-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
             {error}
@@ -282,7 +235,7 @@ export default function FeedPage() {
             </p>
           </div>
         ) : (
-          <div className="animate-fade-in">
+          <div>
             {posts.map((post) => (
               <PostCard key={post.uri} post={post} />
             ))}
@@ -300,23 +253,7 @@ export default function FeedPage() {
             )}
           </div>
         )}
-      </main>
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 surface-elevated border-t border-border backdrop-blur-lg bg-background/80">
-        <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-around">
-          <Link to="/feed">
-            <Button variant="ghost" size="icon" className="text-primary">
-              <Home className="w-6 h-6" />
-            </Button>
-          </Link>
-          <Link to="/profile">
-            <Button variant="ghost" size="icon">
-              <User className="w-6 h-6" />
-            </Button>
-          </Link>
-        </div>
-      </nav>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

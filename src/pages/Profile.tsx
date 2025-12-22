@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Users, UserPlus, MapPin, Calendar, Link as LinkIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Calendar } from 'lucide-react';
 
 interface ProfileData {
   did: string;
@@ -21,15 +18,12 @@ interface ProfileData {
 }
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!isAuthenticated) return;
-      
       setIsLoading(true);
       try {
         const result = await atprotoClient.getProfile();
@@ -57,34 +51,13 @@ export default function ProfilePage() {
     };
 
     fetchProfile();
-  }, [isAuthenticated]);
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  const handleLogout = async () => {
-    await logout();
-  };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppLayout>
       {/* Header */}
-      <header className="sticky top-0 z-50 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-4">
-          <Link to="/feed">
-            <Button variant="ghost" size="icon" className="shrink-0">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
+      <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
+        <div className="px-4 h-14 flex items-center gap-4">
           <div className="flex-1 min-w-0">
             <h1 className="font-semibold text-foreground truncate">
               {profile?.displayName || profile?.handle || 'Profile'}
@@ -98,7 +71,7 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto">
+      <div className="animate-fade-in">
         {/* Banner */}
         <div className="h-32 sm:h-48 bg-gradient-to-br from-primary/30 to-accent/20 relative">
           {profile?.banner && (
@@ -129,14 +102,6 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleLogout}
-              className="mb-2"
-            >
-              Sign Out
-            </Button>
           </div>
 
           {/* Name and Handle */}
@@ -203,7 +168,7 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

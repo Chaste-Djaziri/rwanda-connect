@@ -115,6 +115,81 @@ class ATProtoClient {
       return { success: false, error: error.message };
     }
   }
+
+  // Fetch notifications using AT Protocol listNotifications endpoint
+  async getNotifications(cursor?: string, limit: number = 30) {
+    try {
+      const response = await this.agent.listNotifications({ cursor, limit });
+      return {
+        success: true,
+        data: response.data.notifications,
+        cursor: response.data.cursor,
+      };
+    } catch (error: any) {
+      console.error('Get notifications error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Get popular/suggested feed for explore (using getSuggestedFeeds as documented)
+  async getSuggestedFeeds(cursor?: string, limit: number = 30) {
+    try {
+      const response = await this.agent.app.bsky.feed.getSuggestedFeeds({ cursor, limit });
+      return {
+        success: true,
+        data: response.data.feeds,
+        cursor: response.data.cursor,
+      };
+    } catch (error: any) {
+      console.error('Get suggested feeds error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Get popular feed generator posts for explore
+  async getPopularFeedGenerators(cursor?: string, limit: number = 30) {
+    try {
+      const response = await this.agent.app.bsky.unspecced.getPopularFeedGenerators({ cursor, limit });
+      return {
+        success: true,
+        data: response.data.feeds,
+        cursor: response.data.cursor,
+      };
+    } catch (error: any) {
+      console.error('Get popular feed generators error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Search actors (users) for explore
+  async searchActors(query: string, cursor?: string, limit: number = 25) {
+    try {
+      const response = await this.agent.searchActors({ term: query, cursor, limit });
+      return {
+        success: true,
+        data: response.data.actors,
+        cursor: response.data.cursor,
+      };
+    } catch (error: any) {
+      console.error('Search actors error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Get suggested actors to follow
+  async getSuggestions(cursor?: string, limit: number = 10) {
+    try {
+      const response = await this.agent.getSuggestions({ cursor, limit });
+      return {
+        success: true,
+        data: response.data.actors,
+        cursor: response.data.cursor,
+      };
+    } catch (error: any) {
+      console.error('Get suggestions error:', error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 // Singleton instance
