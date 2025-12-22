@@ -150,7 +150,7 @@ function ImageGrid({ images }: { images: any[] }) {
 
   const gridClass =
     imageCount === 1
-      ? 'grid grid-cols-1'
+      ? 'inline-flex'
       : imageCount === 2
         ? 'grid grid-cols-2 aspect-[4/3]'
         : 'grid grid-cols-2 grid-rows-2 aspect-[4/3]';
@@ -178,9 +178,9 @@ function ImageGrid({ images }: { images: any[] }) {
               <img
                 src={isGifUrl(image.fullsize) ? image.fullsize : image.thumb || image.fullsize}
                 alt={image.alt || 'Post image'}
-                className={`w-full object-contain bg-black ${
+                className={`${isSingle ? 'w-auto max-w-full' : 'w-full'} object-contain bg-black ${
                   isSingle
-                    ? 'max-h-[32rem]'
+                    ? 'h-auto'
                     : isThree
                       ? 'h-full'
                       : 'aspect-[4/3]'
