@@ -6,7 +6,6 @@ import { PenSquare, MoreHorizontal, User, UserPlus, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils';
 import { navItems } from './navItems';
 import { NewPostDialog } from '@/components/composer/NewPostDialog';
-import { toast } from '@/components/ui/sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -106,7 +105,7 @@ export function LeftSidebar() {
               <User className="mr-2 h-4 w-4" />
               Go to profile
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast('Add account coming soon')}>
+            <DropdownMenuItem onClick={() => navigate('/auth?add=1')}>
               <UserPlus className="mr-2 h-4 w-4" />
               Add another account
             </DropdownMenuItem>

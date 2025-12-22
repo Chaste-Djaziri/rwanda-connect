@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ const loginSchema = z.object({
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login, isAuthenticated, isLoading: authLoading, switchAccount } = useAuth();
   
   const [identifier, setIdentifier] = useState('');
@@ -75,6 +76,7 @@ export default function AuthPage() {
   useEffect(() => {
     const loadAccounts = async () => {
       const sessions = atprotoClient.getStoredSessions();
+      const forceAdd = searchParams.get('add') === '1';
       if (sessions.length === 0) {
         setSavedAccounts([]);
         setShowLoginForm(true);
@@ -97,10 +99,10 @@ export default function AuthPage() {
           avatar: avatarMap.get(session.did),
         }))
       );
-      setShowLoginForm(false);
+      setShowLoginForm(forceAdd ? true : false);
     };
     loadAccounts();
-  }, []);
+  }, [searchParams]);
 
   if (authLoading) {
     return (
