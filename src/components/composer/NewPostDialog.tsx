@@ -93,6 +93,7 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
   const [isGifLoading, setIsGifLoading] = useState(false);
   const [gifError, setGifError] = useState<string | null>(null);
   const [interactionOpen, setInteractionOpen] = useState(false);
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [replySetting, setReplySetting] = useState<ReplySetting>('anyone');
   const [allowQuotePosts, setAllowQuotePosts] = useState(true);
   const [listUris, setListUris] = useState<string[]>([]);
@@ -297,8 +298,30 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
     localStorage.setItem(DEFAULTS_KEY, JSON.stringify(payload));
   };
 
+  const hasDraft =
+    text.trim().length > 0 || images.length > 0 || Boolean(video) || gifResults.length > 0;
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && hasDraft) {
+      setConfirmCloseOpen(true);
+      return;
+    }
+    setOpen(nextOpen);
+  };
+
+  const discardDraft = () => {
+    setText('');
+    setImages([]);
+    setVideo(null);
+    setGifQuery('');
+    setGifResults([]);
+    setError(null);
+    setConfirmCloseOpen(false);
+    setOpen(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-2xl p-0">
         <DialogHeader className="px-6 pt-6">
@@ -587,6 +610,24 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
           </div>
         </div>
       </DialogContent>
+      <Dialog open={confirmCloseOpen} onOpenChange={setConfirmCloseOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Discard draft?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            You have an unsent post. If you close now, your draft will be lost.
+          </p>
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" type="button" onClick={() => setConfirmCloseOpen(false)}>
+              Keep editing
+            </Button>
+            <Button variant="destructive" type="button" onClick={discardDraft}>
+              Discard
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
