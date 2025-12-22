@@ -73,6 +73,25 @@ const renderExternalEmbed = (embed: any) => {
   if (!external) return null;
   const isGif = isGifUrl(external.uri);
   const isGifVideo = /\.gifv(\?|$)/i.test(external.uri);
+  if (isGif) {
+    return (
+      <div className="mt-3 overflow-hidden rounded-xl border border-border">
+        {isGifVideo ? (
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full max-h-80 object-cover bg-black"
+          >
+            <source src={external.uri.replace(/\.gifv(\?.*)?$/i, '.mp4$1')} />
+          </video>
+        ) : (
+          <img src={external.uri} alt="" className="w-full max-h-80 object-cover" />
+        )}
+      </div>
+    );
+  }
   return (
     <a
       href={external.uri}
@@ -80,24 +99,8 @@ const renderExternalEmbed = (embed: any) => {
       rel="noreferrer"
       className="mt-3 block overflow-hidden rounded-xl border border-border hover:bg-muted/20 transition-colors"
     >
-      {isGif ? (
-        isGifVideo ? (
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-48 object-cover bg-black"
-          >
-            <source src={external.uri.replace(/\.gifv(\?.*)?$/i, '.mp4$1')} />
-          </video>
-        ) : (
-          <img src={external.uri} alt={external.title} className="w-full h-48 object-cover" />
-        )
-      ) : (
-        external.thumb && (
-          <img src={external.thumb} alt={external.title} className="w-full h-48 object-cover" />
-        )
+      {external.thumb && (
+        <img src={external.thumb} alt={external.title} className="w-full h-48 object-cover" />
       )}
       <div className="p-3">
         <p className="text-sm font-semibold text-foreground">{external.title}</p>
@@ -120,7 +123,7 @@ const renderImagesEmbed = (embed: any) => {
           key={`${image?.thumb ?? 'image'}-${index}`}
           src={isGifUrl(image.fullsize) ? image.fullsize : image.thumb || image.fullsize}
           alt={image.alt || 'Post image'}
-          className="w-full max-h-96 object-cover"
+          className="w-full max-h-80 object-cover"
         />
       ))}
     </div>
@@ -135,7 +138,7 @@ const renderVideoEmbed = (embed: any) => {
     <div className="mt-3 overflow-hidden rounded-xl border border-border">
       {video.playlist ? (
         isGif ? (
-          <video autoPlay loop muted playsInline className="w-full max-h-96 bg-black" poster={video.thumb}>
+          <video autoPlay loop muted playsInline className="w-full max-h-80 object-cover bg-black" poster={video.thumb}>
             <source src={video.playlist} />
           </video>
         ) : (
