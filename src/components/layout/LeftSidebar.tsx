@@ -5,6 +5,7 @@ import { chatApi } from '@/lib/chat';
 import { PenSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { navItems } from './navItems';
+import { NewPostDialog } from '@/components/composer/NewPostDialog';
 
 export function LeftSidebar() {
   const leftOffset = 'calc(50% - 17.5vw - 18rem - 3rem)';
@@ -112,13 +113,17 @@ export function LeftSidebar() {
       </nav>
 
       <div className="pb-8 flex items-center justify-center xl:justify-start">
-        <button
-          type="button"
-          className="w-12 h-12 xl:w-full xl:h-auto flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground py-3 font-semibold hover:bg-primary/90 transition-colors"
-        >
-          <PenSquare className="w-4 h-4" />
-          <span className="hidden xl:block">New Post</span>
-        </button>
+        <NewPostDialog
+          trigger={
+            <button
+              type="button"
+              className="w-12 h-12 xl:w-full xl:h-auto flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground py-3 font-semibold hover:bg-primary/90 transition-colors"
+            >
+              <PenSquare className="w-4 h-4" />
+              <span className="hidden xl:block">New Post</span>
+            </button>
+          }
+        />
       </div>
     </aside>
   );

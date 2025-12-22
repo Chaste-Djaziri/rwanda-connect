@@ -1,4 +1,4 @@
-import { BskyAgent, AtpSessionData, AtpSessionEvent } from '@atproto/api';
+import { BskyAgent, AtpSessionData, AtpSessionEvent, RichText } from '@atproto/api';
 
 const PUBLIC_API = 'https://public.api.bsky.app';
 const BSKY_SERVICE = 'https://bsky.social';
@@ -98,6 +98,75 @@ class ATProtoClient {
       return { success: true, data: response.data };
     } catch (error: any) {
       console.error('Get profile error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async createPost({
+    text,
+    langs,
+    images,
+    video,
+  }: {
+    text: string;
+    langs?: string[];
+    images?: Array<{
+      file: Blob;
+      alt?: string;
+      aspectRatio?: { width: number; height: number };
+    }>;
+    video?: {
+      file: Blob;
+      aspectRatio?: { width: number; height: number };
+    };
+  }) {
+    try {
+      const richText = new RichText({ text });
+      await richText.detectFacets(this.agent);
+
+      const record: any = {
+        $type: 'app.bsky.feed.post',
+        text: richText.text,
+        facets: richText.facets,
+        createdAt: new Date().toISOString(),
+      };
+
+      if (langs && langs.length > 0) {
+        record.langs = langs;
+      }
+
+      if (images && images.length > 0) {
+        const uploaded = await Promise.all(
+          images.map(async (image) => {
+            const response = await this.agent.uploadBlob(image.file, {
+              encoding: image.file.type,
+            });
+            return {
+              image: response.data.blob,
+              alt: image.alt || '',
+              ...(image.aspectRatio ? { aspectRatio: image.aspectRatio } : {}),
+            };
+          })
+        );
+        record.embed = {
+          $type: 'app.bsky.embed.images',
+          images: uploaded,
+        };
+      } else if (video) {
+        const response = await this.agent.uploadBlob(video.file, {
+          encoding: video.file.type,
+        });
+        record.embed = {
+          $type: 'app.bsky.embed.video',
+          video: response.data.blob,
+          ...(video.aspectRatio ? { aspectRatio: video.aspectRatio } : {}),
+        };
+      }
+
+      const response = await this.agent.post(record);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error('Create post error:', error);
       return { success: false, error: error.message };
     }
   }
