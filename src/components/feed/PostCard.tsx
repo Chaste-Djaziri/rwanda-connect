@@ -152,8 +152,8 @@ function ImageGrid({ images }: { images: any[] }) {
     imageCount === 1
       ? 'grid grid-cols-1'
       : imageCount === 2
-        ? 'grid grid-cols-2'
-        : 'grid grid-cols-2 grid-rows-2';
+        ? 'grid grid-cols-2 aspect-[4/3]'
+        : 'grid grid-cols-2 grid-rows-2 aspect-[4/3]';
 
   return (
     <>
@@ -162,6 +162,7 @@ function ImageGrid({ images }: { images: any[] }) {
           const isLastWithOverlay = imageCount > 4 && index === 3;
           const isTall = imageCount === 3 && index === 0;
           const isSingle = imageCount === 1;
+          const isThree = imageCount === 3;
           return (
             <button
               key={`${image?.thumb ?? image?.fullsize ?? 'image'}-${index}`}
@@ -177,8 +178,12 @@ function ImageGrid({ images }: { images: any[] }) {
               <img
                 src={isGifUrl(image.fullsize) ? image.fullsize : image.thumb || image.fullsize}
                 alt={image.alt || 'Post image'}
-                className={`w-full ${
-                  isSingle ? 'max-h-[32rem] object-contain' : 'aspect-[4/3] object-cover'
+                className={`w-full object-contain bg-black ${
+                  isSingle
+                    ? 'max-h-[32rem]'
+                    : isThree
+                      ? 'h-full'
+                      : 'aspect-[4/3]'
                 }`}
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
