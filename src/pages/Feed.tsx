@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -37,9 +37,11 @@ export default function FeedPage() {
   const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'discover' | 'following'>('discover');
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string | undefined>();
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const saved = getSavedPosts().map((post) => post.uri);
@@ -64,6 +66,8 @@ export default function FeedPage() {
     async (refresh = false) => {
       if (refresh) {
         setIsRefreshing(true);
+      } else if (posts.length > 0) {
+        setIsLoadingMore(true);
       } else {
         setIsLoading(true);
       }
@@ -107,10 +111,11 @@ export default function FeedPage() {
         setError('Failed to fetch timeline');
       } finally {
         setIsLoading(false);
+        setIsLoadingMore(false);
         setIsRefreshing(false);
       }
     },
-    [cursor]
+    [cursor, activeTab, posts.length]
   );
 
   useEffect(() => {
@@ -118,6 +123,24 @@ export default function FeedPage() {
     setPosts([]);
     fetchFeed(true);
   }, [activeTab]);
+
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !cursor) return;
+    if (isLoading || isLoadingMore || isRefreshing) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          fetchFeed(false);
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [cursor, isLoading, isLoadingMore, isRefreshing, fetchFeed]);
 
   return (
     <AppLayout>
@@ -186,11 +209,13 @@ export default function FeedPage() {
 
         {cursor && !isLoading && (
           <div className="flex justify-center py-6">
-            <Button variant="outline" onClick={() => fetchFeed(false)}>
-              Load more
+            <Button variant="outline" onClick={() => fetchFeed(false)} disabled={isLoadingMore}>
+              {isLoadingMore ? 'Loading...' : 'Load more'}
             </Button>
           </div>
         )}
+
+        {cursor && <div ref={loadMoreRef} className="h-6" />}
       </div>
     </AppLayout>
   );

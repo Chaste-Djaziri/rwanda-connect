@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
@@ -12,8 +12,10 @@ export default function HashtagPage() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string | undefined>();
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const saved = getSavedPosts().map((post) => post.uri);
@@ -37,7 +39,13 @@ export default function HashtagPage() {
   const fetchPosts = useCallback(
     async (refresh = false) => {
       if (!tag) return;
-      setIsLoading(true);
+      if (refresh) {
+        setIsLoading(true);
+      } else if (posts.length > 0) {
+        setIsLoadingMore(true);
+      } else {
+        setIsLoading(true);
+      }
       setError(null);
 
       try {
@@ -75,9 +83,10 @@ export default function HashtagPage() {
         setError('Failed to fetch hashtag feed');
       } finally {
         setIsLoading(false);
+        setIsLoadingMore(false);
       }
     },
-    [tag, cursor]
+    [tag, cursor, posts.length]
   );
 
   useEffect(() => {
@@ -85,6 +94,24 @@ export default function HashtagPage() {
     setPosts([]);
     fetchPosts(true);
   }, [tag]);
+
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !cursor) return;
+    if (isLoading || isLoadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          fetchPosts(false);
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [cursor, isLoading, isLoadingMore, fetchPosts]);
 
   return (
     <AppLayout>
@@ -137,11 +164,13 @@ export default function HashtagPage() {
 
         {cursor && !isLoading && (
           <div className="flex justify-center py-6">
-            <Button variant="outline" onClick={() => fetchPosts(false)}>
-              Load more
+            <Button variant="outline" onClick={() => fetchPosts(false)} disabled={isLoadingMore}>
+              {isLoadingMore ? 'Loading...' : 'Load more'}
             </Button>
           </div>
         )}
+
+        {cursor && <div ref={loadMoreRef} className="h-6" />}
       </div>
     </AppLayout>
   );
