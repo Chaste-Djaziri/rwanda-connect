@@ -288,9 +288,17 @@ const renderVideoEmbed = (embed: any) => {
 
 const renderRecordEmbed = (embed: any) => {
   const record = embed?.record;
-  if (!record) return null;
+  if (!record || record?.$type?.includes('notFound') || record?.$type?.includes('blocked')) {
+    return null;
+  }
   const author = record.author;
   const text = record.value?.text;
+  const nestedEmbeds: any[] = Array.isArray(record?.embeds)
+    ? record.embeds
+    : record?.value?.embed
+      ? [record.value.embed]
+      : [];
+
   return (
     <div className="mt-3 rounded-xl border border-border p-3 bg-muted/20">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -299,7 +307,14 @@ const renderRecordEmbed = (embed: any) => {
         </span>
         {author?.handle && <span>@{author.handle}</span>}
       </div>
-      {text && <p className="text-sm text-foreground mt-2 line-clamp-3">{text}</p>}
+      {text && <p className="text-sm text-foreground mt-2 whitespace-pre-wrap">{text}</p>}
+      {nestedEmbeds.length > 0 && (
+        <div className="mt-2 space-y-2">
+          {nestedEmbeds.map((nested, index) => (
+            <div key={`${nested?.$type ?? 'embed'}-${index}`}>{renderEmbed(nested)}</div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
