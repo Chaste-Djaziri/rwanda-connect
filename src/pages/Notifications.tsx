@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -130,6 +130,7 @@ export default function NotificationsPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string | undefined>();
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const fetchNotifications = useCallback(async (refresh = false) => {
     if (refresh) {
@@ -177,6 +178,24 @@ export default function NotificationsPage() {
   useEffect(() => {
     fetchNotifications(true);
   }, []);
+
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !cursor) return;
+    if (isLoading || isRefreshing) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          fetchNotifications(false);
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [cursor, isLoading, isRefreshing]);
 
   return (
     <AppLayout>
@@ -235,6 +254,8 @@ export default function NotificationsPage() {
                 </Button>
               </div>
             )}
+
+            {cursor && <div ref={loadMoreRef} className="h-6" />}
           </div>
         )}
       </div>

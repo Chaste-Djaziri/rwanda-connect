@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { chatApi, ChatApiError, ChatConvo } from '@/lib/chat';
@@ -19,6 +19,7 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const loadConvos = async (reset = false) => {
     if (reset) {
@@ -48,6 +49,24 @@ export default function ChatPage() {
     if (!isAuthenticated || isChatSessionLoading || !hasChatSession) return;
     loadConvos(true);
   }, [isAuthenticated, isChatSessionLoading, hasChatSession]);
+
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !cursor) return;
+    if (isLoading || isLoadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          loadConvos(false);
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [cursor, isLoading, isLoadingMore]);
 
   if (!isAuthenticated) {
     return <Navigate to="/auth" replace />;
@@ -125,6 +144,8 @@ export default function ChatPage() {
             </Button>
           </div>
         )}
+
+        {cursor && <div ref={loadMoreRef} className="h-6" />}
       </div>
     </AppLayout>
   );

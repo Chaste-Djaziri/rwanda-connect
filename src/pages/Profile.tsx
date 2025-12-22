@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
@@ -209,6 +209,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('posts');
   const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [tabVisibility, setTabVisibility] = useState<Record<TabKey, boolean>>({
     posts: true,
     replies: false,
@@ -449,6 +450,25 @@ export default function ProfilePage() {
     if (tabData[activeTab].hasLoaded) return;
     fetchTabData(activeTab, true);
   }, [activeTab, profile?.did, profile?.handle, tabVisibility, tabData, fetchTabData]);
+
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    const currentTab = tabData[activeTab];
+    if (!node || !currentTab.cursor) return;
+    if (currentTab.isLoading) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          fetchTabData(activeTab, false);
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [activeTab, tabData, fetchTabData]);
 
   return (
     <AppLayout>
@@ -717,6 +737,8 @@ export default function ProfilePage() {
                     </Button>
                   </div>
                 )}
+
+                {tabData[activeTab].cursor && <div ref={loadMoreRef} className="h-6" />}
               </div>
             )}
           </div>
