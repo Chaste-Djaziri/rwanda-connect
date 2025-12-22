@@ -21,6 +21,7 @@ import Saved from "./pages/Saved";
 import Hashtag from "./pages/Hashtag";
 import PostDetail from "./pages/PostDetail";
 import ProfileRedirect from "./pages/ProfileRedirect";
+import FeedDetail from "./pages/FeedDetail";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/chat" element={<Chat />} />
               <Route path="/chat/:convoId" element={<ChatThread />} />
               <Route path="/feeds" element={<Feeds />} />
+              <Route path="/profile/:handle/feed/:feedId" element={<FeedDetail />} />
               <Route path="/lists" element={<Lists />} />
               <Route path="/saved" element={<Saved />} />
               <Route path="/hashtag/:tag" element={<Hashtag />} />

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -104,9 +104,19 @@ function PostSkeleton() {
   );
 }
 
-function FeedCard({ feed }: { feed: any }) {
+function FeedCard({
+  feed,
+  onPin,
+  isPinning,
+}: {
+  feed: any;
+  onPin: (uri: string) => void;
+  isPinning: boolean;
+}) {
+  const feedId = feed.uri?.split('/').pop();
+  const route = feedId ? `/profile/${feed.creator?.handle}/feed/${feedId}` : '#';
   return (
-    <div className="p-4 border-b border-border hover:bg-muted/30 transition-colors">
+    <Link to={route} className="block p-4 border-b border-border hover:bg-muted/30 transition-colors">
       <div className="flex gap-3">
         <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted shrink-0">
           {feed.avatar ? (
@@ -135,8 +145,23 @@ function FeedCard({ feed }: { feed: any }) {
             </p>
           )}
         </div>
+        <div className="shrink-0">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onPin(feed.uri);
+            }}
+            disabled={isPinning}
+          >
+            Pin Feed
+          </Button>
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -210,6 +235,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<TabKey>('posts');
   const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const [pinningFeedUri, setPinningFeedUri] = useState<string | null>(null);
   const [tabVisibility, setTabVisibility] = useState<Record<TabKey, boolean>>({
     posts: true,
     replies: false,
@@ -444,6 +470,13 @@ export default function ProfilePage() {
     [profile, tabData]
   );
 
+  const handlePinFeed = async (uri: string) => {
+    if (pinningFeedUri) return;
+    setPinningFeedUri(uri);
+    await atprotoClient.pinFeed(uri, 'feed');
+    setPinningFeedUri(null);
+  };
+
   useEffect(() => {
     if (!profile || !tabVisibility[activeTab]) return;
     if (tabData[activeTab].isLoading) return;
@@ -664,7 +697,12 @@ export default function ProfilePage() {
                       </div>
                     )}
                     {tabData.feeds.items.map((feed: any) => (
-                      <FeedCard key={feed.uri} feed={feed} />
+                      <FeedCard
+                        key={feed.uri}
+                        feed={feed}
+                        onPin={handlePinFeed}
+                        isPinning={pinningFeedUri === feed.uri}
+                      />
                     ))}
                   </div>
                 )}

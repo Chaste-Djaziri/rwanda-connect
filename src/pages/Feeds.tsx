@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Compass, Settings, Star, Users, Search } from 'lucide-react';
+import { Compass, Settings, Star, Users, Search, ChevronRight, Pin } from 'lucide-react';
 
 
 type SavedFeedItem = {
@@ -25,19 +26,28 @@ type FeedGenerator = {
   };
 };
 
+function getFeedRoute(feed: FeedGenerator) {
+  const feedId = feed.uri.split('/').pop();
+  if (!feedId) return '#';
+  return `/profile/${feed.creator.handle}/feed/${feedId}`;
+}
+
 function MyFeedRow({
   title,
   description,
   icon,
-  isPinned,
+  to,
 }: {
   title: string;
   description: string;
   icon: React.ReactNode;
-  isPinned?: boolean;
+  to: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border/70 px-4 py-3">
+    <Link
+      to={to}
+      className="flex items-center gap-3 rounded-lg border border-border/70 px-4 py-3 hover:bg-muted/30 transition-colors"
+    >
       <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
         {icon}
       </div>
@@ -45,12 +55,8 @@ function MyFeedRow({
         <p className="font-semibold text-foreground">{title}</p>
         <p className="text-xs text-muted-foreground truncate">{description}</p>
       </div>
-      {isPinned && (
-        <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded-full">
-          Pinned
-        </span>
-      )}
-    </div>
+      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+    </Link>
   );
 }
 
@@ -66,7 +72,10 @@ function FeedCard({
   isPinning: boolean;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-border/70 px-4 py-3">
+    <Link
+      to={getFeedRoute(feed)}
+      className="flex items-start gap-3 rounded-lg border border-border/70 px-4 py-3 hover:bg-muted/30 transition-colors"
+    >
       <div className="h-10 w-10 rounded-lg overflow-hidden bg-muted shrink-0">
         {feed.avatar ? (
           <img src={feed.avatar} alt={feed.displayName} className="h-full w-full object-cover" />
@@ -93,12 +102,17 @@ function FeedCard({
         size="sm"
         className="shrink-0"
         variant={pinned ? 'secondary' : 'default'}
-        onClick={() => onPin(feed.uri)}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onPin(feed.uri);
+        }}
         disabled={isPinning}
       >
+        <Pin className="mr-2 h-3.5 w-3.5" />
         {pinned ? 'Pinned' : 'Pin Feed'}
       </Button>
-    </div>
+    </Link>
   );
 }
 
@@ -229,15 +243,10 @@ export default function FeedsPage() {
 
           <div className="space-y-3">
             <MyFeedRow
-              title="Discover"
-              description="Trending posts from across Bluesky"
-              icon={<Compass className="h-4 w-4" />}
-              isPinned
-            />
-            <MyFeedRow
               title="Following"
               description="Posts from people you follow"
               icon={<Users className="h-4 w-4" />}
+              to="/feed"
             />
 
             {isLoading ? (
@@ -253,7 +262,7 @@ export default function FeedsPage() {
                   title={feed.displayName}
                   description={`Feed by @${feed.creator.handle}`}
                   icon={<Star className="h-4 w-4" />}
-                  isPinned={pinnedSet.has(feed.uri)}
+                  to={getFeedRoute(feed)}
                 />
               ))
             ) : (
