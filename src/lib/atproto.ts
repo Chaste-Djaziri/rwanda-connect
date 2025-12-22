@@ -763,27 +763,31 @@ class ATProtoClient {
       };
     } catch (error: any) {
       if (error?.status === 401 || error?.message?.includes('Authentication Required')) {
-        try {
-          const params = new URLSearchParams();
-          params.set('term', query);
-          params.set('limit', String(limit));
-          if (cursor) params.set('cursor', cursor);
-          const response = await fetch(`${PUBLIC_API}/xrpc/app.bsky.actor.searchActors?${params.toString()}`);
-          if (!response.ok) {
-            throw new Error('Failed to fetch');
-          }
-          const data = await response.json();
-          return {
-            success: true,
-            data: data.actors || [],
-            cursor: data.cursor,
-          };
-        } catch (fallbackError: any) {
-          console.error('Search actors public fallback error:', fallbackError);
-          return { success: false, error: fallbackError.message };
-        }
+        return await this.searchActorsPublic(query, cursor, limit);
       }
       console.error('Search actors error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async searchActorsPublic(query: string, cursor?: string, limit: number = 25) {
+    try {
+      const params = new URLSearchParams();
+      params.set('term', query);
+      params.set('limit', String(limit));
+      if (cursor) params.set('cursor', cursor);
+      const response = await fetch(`${PUBLIC_API}/xrpc/app.bsky.actor.searchActors?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const data = await response.json();
+      return {
+        success: true,
+        data: data.actors || [],
+        cursor: data.cursor,
+      };
+    } catch (error: any) {
+      console.error('Search actors public error:', error);
       return { success: false, error: error.message };
     }
   }

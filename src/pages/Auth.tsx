@@ -45,7 +45,7 @@ export default function AuthPage() {
     setIsSuggesting(true);
     const timeout = setTimeout(async () => {
       try {
-        const result = await atprotoClient.searchActors(query, undefined, 5);
+        const result = await atprotoClient.searchActorsPublic(query, undefined, 5);
         if (!isActive) return;
         if (result.success && result.data) {
           setSuggestions(
