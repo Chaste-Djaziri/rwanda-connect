@@ -23,7 +23,111 @@ interface FeedPost {
   replyCount: number;
   repostCount: number;
   likeCount: number;
+  embed?: any;
 }
+
+const renderExternalEmbed = (embed: any) => {
+  const external = embed?.external;
+  if (!external) return null;
+  return (
+    <a
+      href={external.uri}
+      target="_blank"
+      rel="noreferrer"
+      className="mt-3 block overflow-hidden rounded-xl border border-border hover:bg-muted/20 transition-colors"
+    >
+      {external.thumb && (
+        <img src={external.thumb} alt={external.title} className="w-full h-48 object-cover" />
+      )}
+      <div className="p-3">
+        <p className="text-sm font-semibold text-foreground">{external.title}</p>
+        {external.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{external.description}</p>
+        )}
+        <p className="text-xs text-muted-foreground mt-2 truncate">{external.uri}</p>
+      </div>
+    </a>
+  );
+};
+
+const renderImagesEmbed = (embed: any) => {
+  const images = embed?.images;
+  if (!Array.isArray(images)) return null;
+  return (
+    <div className="mt-3 grid gap-2 rounded-xl overflow-hidden border border-border">
+      {images.map((image: any, index: number) => (
+        <img
+          key={`${image?.thumb ?? 'image'}-${index}`}
+          src={image.thumb || image.fullsize}
+          alt={image.alt || 'Post image'}
+          className="w-full max-h-96 object-cover"
+        />
+      ))}
+    </div>
+  );
+};
+
+const renderVideoEmbed = (embed: any) => {
+  const video = embed;
+  if (!video?.playlist && !video?.thumb) return null;
+  return (
+    <div className="mt-3 overflow-hidden rounded-xl border border-border">
+      {video.playlist ? (
+        <video controls poster={video.thumb} className="w-full max-h-96 bg-black">
+          <source src={video.playlist} />
+        </video>
+      ) : (
+        <img src={video.thumb} alt="Video thumbnail" className="w-full max-h-96 object-cover" />
+      )}
+    </div>
+  );
+};
+
+const renderRecordEmbed = (embed: any) => {
+  const record = embed?.record;
+  if (!record) return null;
+  const author = record.author;
+  const text = record.value?.text;
+  return (
+    <div className="mt-3 rounded-xl border border-border p-3 bg-muted/20">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span className="font-semibold text-foreground">
+          {author?.displayName || author?.handle || 'Post'}
+        </span>
+        {author?.handle && <span>@{author.handle}</span>}
+      </div>
+      {text && <p className="text-sm text-foreground mt-2 line-clamp-3">{text}</p>}
+    </div>
+  );
+};
+
+const renderEmbed = (embed?: any) => {
+  if (!embed) return null;
+  const type = embed.$type || '';
+
+  if (type.includes('app.bsky.embed.images')) {
+    return renderImagesEmbed(embed);
+  }
+  if (type.includes('app.bsky.embed.external')) {
+    return renderExternalEmbed(embed);
+  }
+  if (type.includes('app.bsky.embed.video')) {
+    return renderVideoEmbed(embed);
+  }
+  if (type.includes('app.bsky.embed.recordWithMedia')) {
+    return (
+      <>
+        {renderEmbed(embed.media)}
+        {renderRecordEmbed(embed.record)}
+      </>
+    );
+  }
+  if (type.includes('app.bsky.embed.record')) {
+    return renderRecordEmbed(embed);
+  }
+
+  return null;
+};
 
 function PostCard({
   post,
@@ -87,6 +191,7 @@ function PostCard({
           <p className="text-foreground whitespace-pre-wrap break-words leading-relaxed mb-3">
             {post.record.text}
           </p>
+          {renderEmbed(post.embed)}
 
           {/* Actions */}
           <div className="flex items-center gap-6 -ml-2">
@@ -205,6 +310,7 @@ export default function FeedPage() {
             replyCount: item.post.replyCount ?? 0,
             repostCount: item.post.repostCount ?? 0,
             likeCount: item.post.likeCount ?? 0,
+            embed: item.post.embed,
           }));
 
           if (refresh) {
