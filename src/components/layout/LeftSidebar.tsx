@@ -70,7 +70,7 @@ export function LeftSidebar() {
             >
               <div
                 className={cn(
-                  'flex items-center gap-3 rounded-[28px] border border-transparent bg-transparent px-0 py-0 transition-all duration-200',
+                  'flex items-center gap-3 rounded-[32px] border border-transparent bg-transparent px-0 py-0 transition-all duration-200',
                   'group-hover:border-border group-hover:bg-background/80 group-hover:px-3 group-hover:py-2 group-hover:shadow-md',
                   'group-data-[state=open]:border-border group-data-[state=open]:bg-background/80 group-data-[state=open]:px-3 group-data-[state=open]:py-2 group-data-[state=open]:shadow-md'
                 )}
