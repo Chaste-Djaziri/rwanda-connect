@@ -170,11 +170,11 @@ class ATProtoClient {
       }
 
       const response = await this.agent.post(record);
-      const postUri = response.data.uri;
+      const postUri = response.data?.uri;
       const repo = this.agent.session?.did;
-      const rkey = postUri.split('/').pop();
+      const rkey = postUri ? postUri.split('/').pop() : undefined;
 
-      if (interaction && repo && rkey) {
+      if (interaction && repo && rkey && postUri) {
         const allowQuotePosts = interaction.allowQuotePosts ?? true;
         const replySetting = interaction.reply ?? 'anyone';
 
@@ -234,6 +234,9 @@ class ATProtoClient {
         }
       }
 
+      if (!postUri) {
+        return { success: false, error: 'Post created without a URI response.' };
+      }
       return { success: true, data: response.data };
     } catch (error: any) {
       console.error('Create post error:', error);
@@ -291,7 +294,7 @@ class ATProtoClient {
 
   async muteThread(uri: string) {
     try {
-      await this.agent.app.bsky.graph.muteThread({ uri });
+      await this.agent.app.bsky.graph.muteThread({ root: uri });
       return { success: true };
     } catch (error: any) {
       console.error('Mute thread error:', error);
