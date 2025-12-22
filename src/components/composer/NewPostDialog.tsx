@@ -302,7 +302,12 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-2xl p-0">
         <DialogHeader className="px-6 pt-6">
-          <DialogTitle>New post</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>New post</DialogTitle>
+            <Button type="button" variant="outline" size="sm" onClick={() => setInteractionOpen(true)}>
+              Post interaction settings
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="px-6 pb-6 space-y-4">
@@ -485,11 +490,6 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
           )}
 
           <Dialog open={interactionOpen} onOpenChange={setInteractionOpen}>
-            <DialogTrigger asChild>
-              <Button type="button" variant="outline">
-                Post interaction settings
-              </Button>
-            </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>Post interaction settings</DialogTitle>
