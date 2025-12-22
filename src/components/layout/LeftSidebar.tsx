@@ -2,20 +2,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { chatApi } from '@/lib/chat';
-import { Home, Compass, Bell, User, Settings, MessageSquare, PenSquare, Hash, List, Bookmark } from 'lucide-react';
+import { PenSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const baseNavItems = [
-  { icon: Home, label: 'Home', path: '/feed' },
-  { icon: Compass, label: 'Explore', path: '/explore' },
-  { icon: Bell, label: 'Notifications', path: '/notifications' },
-  { icon: MessageSquare, label: 'Chat', path: '/chat' },
-  { icon: Hash, label: 'Feeds', path: '/feeds' },
-  { icon: List, label: 'Lists', path: '/lists' },
-  { icon: Bookmark, label: 'Saved', path: '/saved' },
-  { icon: User, label: 'Profile', path: '/profile' },
-  { icon: Settings, label: 'Settings', path: '/settings' },
-];
+import { navItems } from './navItems';
 
 export function LeftSidebar() {
   const location = useLocation();
@@ -52,7 +41,7 @@ export function LeftSidebar() {
   }, [isAuthenticated, isChatSessionLoading, hasChatSession, location.pathname]);
 
   return (
-    <aside className="fixed left-56 top-6 bottom-6 w-72 bg-transparent hidden lg:flex flex-col z-40 px-6">
+    <aside className="fixed left-6 top-6 bottom-6 w-20 bg-transparent hidden lg:flex flex-col z-40 px-4 xl:left-24 2xl:left-32 xl:w-72">
       <div className="h-20 flex items-center justify-center">
         <Link to="/profile" className="group flex items-center justify-center">
           <div className="w-12 h-12 rounded-full overflow-hidden bg-muted ring-2 ring-border group-hover:ring-primary/60 transition-colors">
@@ -74,14 +63,14 @@ export function LeftSidebar() {
       {/* Navigation */}
       <nav className="flex-1 py-6">
         <ul className="space-y-2">
-          {baseNavItems.map((item) => {
+          {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <li key={item.path}>
                 <Link
                   to={item.path}
                   className={cn(
-                    'flex items-center gap-3 px-4 py-2.5 rounded-full transition-all duration-200 ml-2',
+                    'flex items-center gap-3 px-3 py-2.5 rounded-full transition-all duration-200 xl:ml-2',
                     'hover:bg-muted/60 hover:text-foreground',
                     isActive && 'bg-muted text-foreground'
                   )}
@@ -92,11 +81,14 @@ export function LeftSidebar() {
                       isActive ? 'text-foreground' : 'text-muted-foreground'
                     )}
                   />
-                  <span className="text-base font-medium">{item.label}</span>
+                  <span className="text-base font-medium hidden xl:block">{item.label}</span>
                   {item.path === '/chat' && unreadCount > 0 && (
-                    <span className="ml-auto min-w-6 h-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold px-2 hidden md:inline-flex">
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </span>
+                    <>
+                      <span className="ml-auto min-w-6 h-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold px-2 hidden xl:inline-flex">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                      <span className="ml-auto h-2 w-2 rounded-full bg-primary xl:hidden" />
+                    </>
                   )}
                 </Link>
               </li>
@@ -105,13 +97,13 @@ export function LeftSidebar() {
         </ul>
       </nav>
 
-      <div className="pb-8">
+      <div className="pb-8 flex items-center justify-center xl:justify-start">
         <button
           type="button"
-          className="w-full flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground py-3 font-semibold shadow-glow hover:bg-primary/90 transition-colors"
+          className="w-12 h-12 xl:w-full xl:h-auto flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground py-3 font-semibold hover:bg-primary/90 transition-colors"
         >
           <PenSquare className="w-4 h-4" />
-          New Post
+          <span className="hidden xl:block">New Post</span>
         </button>
       </div>
     </aside>

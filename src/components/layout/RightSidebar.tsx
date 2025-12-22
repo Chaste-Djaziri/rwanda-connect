@@ -83,7 +83,7 @@ export function RightSidebar() {
   };
 
   return (
-    <aside className="fixed right-56 top-6 bottom-6 w-80 bg-transparent hidden lg:flex flex-col z-40 px-6">
+    <aside className="fixed right-6 top-6 bottom-6 w-80 bg-transparent hidden xl:flex flex-col z-40 px-6 xl:right-24 2xl:right-32">
       {/* Search */}
       <div className="pt-6">
         <div className="relative">
