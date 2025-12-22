@@ -28,7 +28,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <LeftSidebar />
 
       {/* Main Content - Center Column */}
-      <main className="min-h-screen border-x border-border lg:ml-[calc(18rem+8rem)] lg:mr-[calc(20rem+8rem)]">
+      <main className="min-h-screen border-x border-border lg:ml-[calc(18rem+10rem)] lg:mr-[calc(20rem+10rem)]">
         {children}
       </main>
 
