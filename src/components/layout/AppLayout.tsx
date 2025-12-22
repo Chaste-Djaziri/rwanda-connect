@@ -29,7 +29,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <LeftSidebar />
 
       {/* Main Content - Center Column */}
-      <main className="min-h-screen border-x border-border pb-16 lg:pb-0 mx-auto w-full lg:max-w-2xl xl:w-[25vw] xl:max-w-[25vw]">
+      <main className="min-h-screen border-x border-border pb-16 lg:pb-0 mx-auto w-full lg:max-w-2xl xl:w-[35vw] xl:max-w-[35vw]">
         {children}
       </main>
 
