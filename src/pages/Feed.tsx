@@ -147,7 +147,7 @@ function PostSkeleton() {
 export default function FeedPage() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<'home' | 'following'>('home');
+  const [activeTab, setActiveTab] = useState<'discover' | 'following'>('discover');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -182,7 +182,7 @@ export default function FeedPage() {
       setError(null);
 
       try {
-        const result = await atprotoClient.getTimeline(refresh ? undefined : cursor);
+        const result = await atprotoClient.getTimeline(refresh ? undefined : cursor, 30);
         if (result.success && result.data) {
           const feedPosts: FeedPost[] = result.data.map((item: any) => ({
             uri: item.post.uri,
@@ -246,7 +246,7 @@ export default function FeedPage() {
         </div>
         <div className="px-6 border-t border-border/60">
           <div className="flex gap-6">
-            {(['home', 'following'] as const).map((tab) => (
+            {(['discover', 'following'] as const).map((tab) => (
               <button
                 key={tab}
                 type="button"
@@ -257,7 +257,7 @@ export default function FeedPage() {
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {tab === 'home' ? 'Discover' : 'Following'}
+                {tab === 'discover' ? 'Discover' : 'Following'}
               </button>
             ))}
           </div>
