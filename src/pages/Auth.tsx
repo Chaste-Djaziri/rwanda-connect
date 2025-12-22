@@ -112,7 +112,9 @@ export default function AuthPage() {
     );
   }
 
-  if (isAuthenticated) {
+  const forceAddAccount = searchParams.get('add') === '1';
+
+  if (isAuthenticated && !forceAddAccount) {
     return <Navigate to="/feed" replace />;
   }
 
