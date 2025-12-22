@@ -130,6 +130,24 @@ class ATProtoClient {
     }
   }
 
+  async searchPostsByTag(tag: string, cursor?: string, limit: number = 30) {
+    try {
+      const response = await this.agent.app.bsky.feed.searchPosts({
+        tag: [tag],
+        cursor,
+        limit,
+      });
+      return {
+        success: true,
+        data: response.data.posts,
+        cursor: response.data.cursor,
+      };
+    } catch (error: any) {
+      console.error('Search posts error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Fetch notifications using AT Protocol listNotifications endpoint
   async getNotifications(cursor?: string, limit: number = 30) {
     try {

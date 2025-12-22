@@ -18,6 +18,7 @@ import ChatThread from "./pages/ChatThread";
 import Feeds from "./pages/Feeds";
 import Lists from "./pages/Lists";
 import Saved from "./pages/Saved";
+import Hashtag from "./pages/Hashtag";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/feeds" element={<Feeds />} />
               <Route path="/lists" element={<Lists />} />
               <Route path="/saved" element={<Saved />} />
+              <Route path="/hashtag/:tag" element={<Hashtag />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
