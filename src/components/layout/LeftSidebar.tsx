@@ -65,11 +65,7 @@ export function LeftSidebar() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className={cn(
-                'group flex w-full items-center gap-3 rounded-2xl border border-border bg-background/80 px-3 py-2 text-left transition-all duration-200',
-                'hover:bg-muted/40 focus:outline-none',
-                'data-[state=open]:bg-muted/40 data-[state=open]:shadow-md'
-              )}
+              className="group relative flex items-center justify-start focus:outline-none"
               aria-label="Account options"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted ring-2 ring-border transition-all duration-200 group-hover:scale-75 group-hover:-translate-x-2 group-hover:ring-primary/60 group-data-[state=open]:scale-75 group-data-[state=open]:-translate-x-2 group-data-[state=open]:ring-primary/60">
@@ -85,12 +81,20 @@ export function LeftSidebar() {
                   </div>
                 )}
               </div>
-              <div className="hidden xl:block min-w-0 flex-1 opacity-0 transition-all duration-200 group-hover:opacity-100 group-data-[state=open]:opacity-100">
-                <p className="font-semibold truncate">{user?.displayName || user?.handle || 'Account'}</p>
-                {user?.handle && <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>}
-              </div>
-              <div className="ml-auto hidden xl:flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors group-hover:text-foreground group-hover:bg-muted group-data-[state=open]:text-foreground group-data-[state=open]:bg-muted">
-                <MoreHorizontal className="w-4 h-4" />
+              <div
+                className={cn(
+                  'pointer-events-none absolute left-14 hidden min-w-[220px] items-center gap-3 rounded-2xl border border-border bg-background/95 px-3 py-2 text-left shadow-lg opacity-0 transition-all duration-200',
+                  'group-hover:pointer-events-auto group-hover:flex group-hover:opacity-100',
+                  'group-data-[state=open]:pointer-events-auto group-data-[state=open]:flex group-data-[state=open]:opacity-100'
+                )}
+              >
+                <div className="hidden xl:block min-w-0 flex-1">
+                  <p className="font-semibold truncate">{user?.displayName || user?.handle || 'Account'}</p>
+                  {user?.handle && <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>}
+                </div>
+                <div className="ml-auto hidden xl:flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors group-hover:text-foreground group-hover:bg-muted group-data-[state=open]:text-foreground group-data-[state=open]:bg-muted">
+                  <MoreHorizontal className="w-4 h-4" />
+                </div>
               </div>
             </button>
           </DropdownMenuTrigger>
