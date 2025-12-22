@@ -92,6 +92,7 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
   const [gifResults, setGifResults] = useState<Array<{ id: string; preview: string; original: string }>>([]);
   const [isGifLoading, setIsGifLoading] = useState(false);
   const [gifError, setGifError] = useState<string | null>(null);
+  const [interactionOpen, setInteractionOpen] = useState(false);
   const [replySetting, setReplySetting] = useState<ReplySetting>('anyone');
   const [allowQuotePosts, setAllowQuotePosts] = useState(true);
   const [listUris, setListUris] = useState<string[]>([]);
@@ -483,80 +484,91 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
             </div>
           )}
 
-          <div className="rounded-xl border border-border/70 p-4 space-y-3 bg-muted/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-foreground">Post interaction settings</p>
-                <p className="text-xs text-muted-foreground">These are your default settings</p>
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={handleSaveDefaults}>
-                Save
+          <Dialog open={interactionOpen} onOpenChange={setInteractionOpen}>
+            <DialogTrigger asChild>
+              <Button type="button" variant="outline">
+                Post interaction settings
               </Button>
-            </div>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Post interaction settings</DialogTitle>
+              </DialogHeader>
 
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Who can reply
-              </label>
-              <Select value={replySetting} onValueChange={(value) => setReplySetting(value as ReplySetting)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Who can reply" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="anyone">Anyone</SelectItem>
-                  <SelectItem value="nobody">Nobody</SelectItem>
-                  <SelectItem value="followers">Your followers</SelectItem>
-                  <SelectItem value="following">People you follow</SelectItem>
-                  <SelectItem value="mentioned">People you mention</SelectItem>
-                  <SelectItem value="list">Select from your lists</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-4">
+                <p className="text-xs text-muted-foreground">These are your default settings.</p>
 
-            {replySetting === 'list' && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Select from your lists
-                </p>
-                {listsError && <p className="text-xs text-destructive">{listsError}</p>}
-                {isListsLoading ? (
-                  <p className="text-xs text-muted-foreground">Loading lists...</p>
-                ) : lists.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No lists available.</p>
-                ) : (
-                  <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                    {lists.map((list) => {
-                      const checked = listUris.includes(list.uri);
-                      return (
-                        <label key={list.uri} className="flex items-center gap-2 text-sm text-foreground">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(value) => {
-                              setListUris((prev) => {
-                                if (value) {
-                                  return prev.includes(list.uri) ? prev : [...prev, list.uri];
-                                }
-                                return prev.filter((uri) => uri !== list.uri);
-                              });
-                            }}
-                          />
-                          {list.name}
-                        </label>
-                      );
-                    })}
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Who can reply
+                  </label>
+                  <Select value={replySetting} onValueChange={(value) => setReplySetting(value as ReplySetting)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Who can reply" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="anyone">Anyone</SelectItem>
+                      <SelectItem value="nobody">Nobody</SelectItem>
+                      <SelectItem value="followers">Your followers</SelectItem>
+                      <SelectItem value="following">People you follow</SelectItem>
+                      <SelectItem value="mentioned">People you mention</SelectItem>
+                      <SelectItem value="list">Select from your lists</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {replySetting === 'list' && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Select from your lists
+                    </p>
+                    {listsError && <p className="text-xs text-destructive">{listsError}</p>}
+                    {isListsLoading ? (
+                      <p className="text-xs text-muted-foreground">Loading lists...</p>
+                    ) : lists.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No lists available.</p>
+                    ) : (
+                      <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                        {lists.map((list) => {
+                          const checked = listUris.includes(list.uri);
+                          return (
+                            <label key={list.uri} className="flex items-center gap-2 text-sm text-foreground">
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(value) => {
+                                  setListUris((prev) => {
+                                    if (value) {
+                                      return prev.includes(list.uri) ? prev : [...prev, list.uri];
+                                    }
+                                    return prev.filter((uri) => uri !== list.uri);
+                                  });
+                                }}
+                              />
+                              {list.name}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
 
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">Allow quote posts</p>
-                <p className="text-xs text-muted-foreground">Control if others can quote this post</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Allow quote posts</p>
+                    <p className="text-xs text-muted-foreground">Control if others can quote this post</p>
+                  </div>
+                  <Switch checked={allowQuotePosts} onCheckedChange={setAllowQuotePosts} />
+                </div>
+
+                <div className="flex justify-end">
+                  <Button type="button" onClick={handleSaveDefaults}>
+                    Save
+                  </Button>
+                </div>
               </div>
-              <Switch checked={allowQuotePosts} onCheckedChange={setAllowQuotePosts} />
-            </div>
-          </div>
+            </DialogContent>
+          </Dialog>
 
           {error && (
             <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
