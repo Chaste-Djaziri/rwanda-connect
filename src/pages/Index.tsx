@@ -138,7 +138,7 @@ export default function Index() {
       <footer className="relative z-10 border-t border-border py-8">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2024 Hillside. Built with AT Protocol.
+            © 2025 Hillside. Built with AT Protocol.
           </p>
           <div className="flex items-center gap-6">
             <a 
