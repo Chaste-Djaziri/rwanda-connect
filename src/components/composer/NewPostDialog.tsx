@@ -302,7 +302,7 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-2xl p-0">
         <DialogHeader className="px-6 pt-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4 pr-10">
             <DialogTitle>New post</DialogTitle>
             <Button type="button" variant="outline" size="sm" onClick={() => setInteractionOpen(true)}>
               Post interaction settings
