@@ -604,6 +604,89 @@ class ATProtoClient {
     }
   }
 
+  async getPreferences() {
+    try {
+      const response = await this.agent.app.bsky.actor.getPreferences();
+      return { success: true, data: response.data.preferences };
+    } catch (error: any) {
+      console.error('Get preferences error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async putPreferences(preferences: any[]) {
+    try {
+      await this.agent.app.bsky.actor.putPreferences({ preferences });
+      return { success: true };
+    } catch (error: any) {
+      console.error('Put preferences error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getFeedGenerators(uris: string[]) {
+    try {
+      const response = await this.agent.app.bsky.feed.getFeedGenerators({ feeds: uris });
+      return { success: true, data: response.data.feeds };
+    } catch (error: any) {
+      console.error('Get feed generators error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async updateSavedFeeds(items: Array<{ id: string; type: string; value: string; pinned: boolean }>) {
+    try {
+      const prefsResult = await this.getPreferences();
+      const existingPrefs = prefsResult.success && prefsResult.data ? prefsResult.data : [];
+      const nextPrefs = existingPrefs.filter(
+        (pref: any) =>
+          pref?.$type !== 'app.bsky.actor.defs#savedFeedsPref' &&
+          pref?.$type !== 'app.bsky.actor.defs#savedFeedsPrefV2'
+      );
+      nextPrefs.push({
+        $type: 'app.bsky.actor.defs#savedFeedsPrefV2',
+        items,
+      });
+      await this.putPreferences(nextPrefs);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Update saved feeds error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async pinFeed(value: string, type: 'feed' | 'list' | 'timeline' = 'feed') {
+    try {
+      const prefsResult = await this.getPreferences();
+      const existingPrefs = prefsResult.success && prefsResult.data ? prefsResult.data : [];
+      const savedPref = existingPrefs.find(
+        (pref: any) =>
+          pref?.$type === 'app.bsky.actor.defs#savedFeedsPrefV2' ||
+          pref?.$type === 'app.bsky.actor.defs#savedFeedsPref'
+      );
+      const items: Array<{ id: string; type: string; value: string; pinned: boolean }> = savedPref?.items || [];
+      const existing = items.find((item) => item.value === value && item.type === type);
+      const nextItems = existing
+        ? items.map((item) =>
+            item.value === value && item.type === type ? { ...item, pinned: true } : item
+          )
+        : [
+            ...items,
+            {
+              id: `${type}:${value}`,
+              type,
+              value,
+              pinned: true,
+            },
+          ];
+      await this.updateSavedFeeds(nextItems);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Pin feed error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Get popular/suggested feed for explore (using getSuggestedFeeds as documented)
   async getSuggestedFeeds(cursor?: string, limit: number = 30) {
     try {
