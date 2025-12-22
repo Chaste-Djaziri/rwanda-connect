@@ -203,7 +203,9 @@ function ImageGrid({ images }: { images: any[] }) {
                 } bg-black ${
                   isSingle
                     ? 'h-auto'
-                    : isThree
+                    : isTwo
+                      ? 'h-full'
+                      : isThree
                       ? 'h-full'
                       : 'aspect-[4/3]'
                 }`}
