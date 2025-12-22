@@ -41,6 +41,12 @@ export function LeftSidebar() {
     loadUnreadCount();
   }, [isAuthenticated, isChatSessionLoading, hasChatSession, location.pathname]);
 
+  const normalizeHandle = (value?: string | null) => value?.replace(/^@/, '').toLowerCase();
+  const activeProfileHandle = location.pathname.startsWith('/profile/')
+    ? normalizeHandle(location.pathname.split('/')[2])
+    : null;
+  const currentUserHandle = normalizeHandle(user?.handle);
+
   return (
     <aside
       className="fixed top-6 bottom-6 w-20 bg-transparent hidden lg:flex flex-col z-40 px-4 xl:w-72"
@@ -68,9 +74,11 @@ export function LeftSidebar() {
       <nav className="flex-1 py-6">
         <ul className="space-y-2">
           {navItems.map((item) => {
-            const isActive =
-              location.pathname === item.path ||
-              (item.path === '/profile' && location.pathname.startsWith('/profile/'));
+            const isProfileItem = item.path === '/profile';
+            const isActive = isProfileItem
+              ? location.pathname === '/profile' ||
+                (activeProfileHandle && currentUserHandle && activeProfileHandle === currentUserHandle)
+              : location.pathname === item.path;
             return (
               <li key={item.path}>
                 <Link

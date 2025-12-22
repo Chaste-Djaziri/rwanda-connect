@@ -15,15 +15,22 @@ const policyLinks = [
 export function BottomNav() {
   const location = useLocation();
   const { user } = useAuth();
+  const normalizeHandle = (value?: string | null) => value?.replace(/^@/, '').toLowerCase();
+  const activeProfileHandle = location.pathname.startsWith('/profile/')
+    ? normalizeHandle(location.pathname.split('/')[2])
+    : null;
+  const currentUserHandle = normalizeHandle(user?.handle);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur lg:hidden">
       <div className="mx-auto max-w-md px-4">
         <div className="flex items-center justify-between py-2">
           {mobilePrimaryNav.map((item) => {
-            const isActive =
-              location.pathname === item.path ||
-              (item.path === '/profile' && location.pathname.startsWith('/profile/'));
+            const isProfileItem = item.path === '/profile';
+            const isActive = isProfileItem
+              ? location.pathname === '/profile' ||
+                (activeProfileHandle && currentUserHandle && activeProfileHandle === currentUserHandle)
+              : location.pathname === item.path;
             const targetPath =
               item.path === '/profile' && user?.handle ? `/profile/${user.handle}` : item.path;
             return (
@@ -77,9 +84,11 @@ export function BottomNav() {
 
               <nav className="mt-6 space-y-1">
                 {navItems.map((item) => {
-                  const isActive =
-                    location.pathname === item.path ||
-                    (item.path === '/profile' && location.pathname.startsWith('/profile/'));
+                  const isProfileItem = item.path === '/profile';
+                  const isActive = isProfileItem
+                    ? location.pathname === '/profile' ||
+                      (activeProfileHandle && currentUserHandle && activeProfileHandle === currentUserHandle)
+                    : location.pathname === item.path;
                   const targetPath =
                     item.path === '/profile' && user?.handle ? `/profile/${user.handle}` : item.path;
                   return (
