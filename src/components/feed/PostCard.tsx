@@ -1,7 +1,38 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MessageSquare, Heart, Repeat2, Bookmark, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import {
+  MessageSquare,
+  Heart,
+  Repeat2,
+  Bookmark,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  ShieldOff,
+  VolumeX,
+  Flag,
+  EyeOff,
+  MessageSquareOff,
+  Copy,
+  Languages,
+  Pin,
+  SlidersHorizontal,
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuth } from '@/contexts/AuthContext';
+import { atprotoClient } from '@/lib/atproto';
+import { toast } from '@/components/ui/sonner';
 
 export interface FeedPost {
   uri: string;
@@ -347,6 +378,12 @@ const renderEmbed = (embed?: any) => {
   return null;
 };
 
+const DEFAULTS_KEY = 'hillside_post_defaults';
+type ReplySetting = 'anyone' | 'nobody' | 'followers' | 'following' | 'mentioned' | 'list';
+
+const translateUrl = (text: string) =>
+  `https://translate.google.com/?sl=auto&tl=en&text=${encodeURIComponent(text)}&op=translate`;
+
 function VideoPlayer({ src, poster }: { src: string; poster?: string }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -494,6 +531,15 @@ export function PostCard({
   onToggleSave: (post: FeedPost) => void;
 }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [interactionOpen, setInteractionOpen] = useState(false);
+  const [replySetting, setReplySetting] = useState<ReplySetting>('anyone');
+  const [allowQuotePosts, setAllowQuotePosts] = useState(true);
+  const [listUris, setListUris] = useState<string[]>([]);
+  const [lists, setLists] = useState<Array<{ uri: string; name: string }>>([]);
+  const [isListsLoading, setIsListsLoading] = useState(false);
+  const [listsError, setListsError] = useState<string | null>(null);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const timeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -512,6 +558,95 @@ export function PostCard({
   const tags = extractTags(post.record.text);
   const handle = post.author.handle;
   const postId = post.uri.split('/').pop() ?? '';
+  const isOwnPost = Boolean(user?.did && user.did === post.author.did);
+
+  useEffect(() => {
+    if (!interactionOpen) return;
+    const stored = localStorage.getItem(DEFAULTS_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as {
+          replySetting?: ReplySetting;
+          allowQuotePosts?: boolean;
+          listUris?: string[];
+        };
+        setReplySetting(parsed.replySetting || 'anyone');
+        setAllowQuotePosts(parsed.allowQuotePosts ?? true);
+        setListUris(parsed.listUris || []);
+      } catch {
+        setReplySetting('anyone');
+        setAllowQuotePosts(true);
+        setListUris([]);
+      }
+    }
+  }, [interactionOpen]);
+
+  useEffect(() => {
+    if (!interactionOpen) return;
+    if (!user?.did && !user?.handle) return;
+    setIsListsLoading(true);
+    setListsError(null);
+    atprotoClient
+      .getActorLists(user?.did || user?.handle || '')
+      .then((result) => {
+        if (result.success && result.data) {
+          setLists(
+            result.data.map((list: any) => ({
+              uri: list.uri,
+              name: list.name || list.displayName || 'List',
+            }))
+          );
+        } else {
+          setLists([]);
+        }
+      })
+      .catch(() => setListsError('Failed to load lists.'))
+      .finally(() => setIsListsLoading(false));
+  }, [interactionOpen, user?.did, user?.handle]);
+
+  const runAction = async (action: () => Promise<{ success: boolean; error?: string }>, message: string) => {
+    if (isActionLoading) return;
+    setIsActionLoading(true);
+    try {
+      const result = await action();
+      if (result.success) {
+        toast(message);
+      } else {
+        toast(result.error || 'Action failed');
+      }
+    } catch (err) {
+      toast('Action failed');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleCopyText = async () => {
+    try {
+      await navigator.clipboard.writeText(post.record.text || '');
+      toast('Post text copied');
+    } catch {
+      toast('Copy failed');
+    }
+  };
+
+  const handleTranslate = () => {
+    window.open(translateUrl(post.record.text || ''), '_blank', 'noopener,noreferrer');
+  };
+
+  const handleUpdateInteraction = async () => {
+    await runAction(
+      () =>
+        atprotoClient.updatePostInteraction({
+          postUri: post.uri,
+          replySetting,
+          allowQuotePosts,
+          listUris,
+        }),
+      'Interaction settings updated'
+    );
+    setInteractionOpen(false);
+  };
 
   const handleCardClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
@@ -560,6 +695,99 @@ export function PostCard({
             <time className="text-muted-foreground text-sm shrink-0">
               {timeAgo(post.record.createdAt)}
             </time>
+            <div className="ml-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="p-2 rounded-full hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
+                  {!isOwnPost && (
+                    <>
+                      <DropdownMenuItem onClick={() => runAction(() => atprotoClient.blockActor(post.author.did), 'Account blocked')}>
+                        <ShieldOff className="w-4 h-4 mr-2" />
+                        Block account
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => runAction(() => atprotoClient.muteActor(post.author.did), 'Account muted')}>
+                        <VolumeX className="w-4 h-4 mr-2" />
+                        Mute account
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => runAction(() => atprotoClient.reportPost(post.uri, post.cid), 'Post reported')}>
+                        <Flag className="w-4 h-4 mr-2" />
+                        Report post
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => runAction(() => atprotoClient.muteThread(post.uri), 'Thread muted')}>
+                        <MessageSquareOff className="w-4 h-4 mr-2" />
+                        Mute thread
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast('Hide post for me coming soon')}>
+                        <EyeOff className="w-4 h-4 mr-2" />
+                        Hide post for me
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast('Mute words & tags coming soon')}>
+                        Mute words & tags
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast('Show more like this coming soon')}>
+                        Show more like this
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast('Show less like this coming soon')}>
+                        Show less like this
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleCopyText}>
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy post text
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleTranslate}>
+                        <Languages className="w-4 h-4 mr-2" />
+                        Translate
+                      </DropdownMenuItem>
+                    </>
+                  )}
+
+                  {isOwnPost && (
+                    <>
+                      <DropdownMenuItem onClick={() => runAction(() => atprotoClient.deletePost(post.uri), 'Post deleted')}>
+                        Delete post
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setInteractionOpen(true)}>
+                        <SlidersHorizontal className="w-4 h-4 mr-2" />
+                        Edit interaction settings
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => runAction(() => atprotoClient.muteThread(post.uri), 'Thread muted')}>
+                        <MessageSquareOff className="w-4 h-4 mr-2" />
+                        Mute thread
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast('Mute words & tags coming soon')}>
+                        Mute words & tags
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleCopyText}>
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy post text
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleTranslate}>
+                        <Languages className="w-4 h-4 mr-2" />
+                        Translate
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          runAction(() => atprotoClient.pinPostToProfile(post.uri, post.cid), 'Post pinned to profile')
+                        }
+                      >
+                        <Pin className="w-4 h-4 mr-2" />
+                        Pin to profile
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
           {/* Post text */}
@@ -582,6 +810,88 @@ export function PostCard({
           )}
 
           {renderEmbed(post.embed)}
+
+          <Dialog open={interactionOpen} onOpenChange={setInteractionOpen}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Edit interaction settings</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Who can reply
+                  </label>
+                  <Select value={replySetting} onValueChange={(value) => setReplySetting(value as ReplySetting)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Who can reply" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="anyone">Anyone</SelectItem>
+                      <SelectItem value="nobody">Nobody</SelectItem>
+                      <SelectItem value="followers">Your followers</SelectItem>
+                      <SelectItem value="following">People you follow</SelectItem>
+                      <SelectItem value="mentioned">People you mention</SelectItem>
+                      <SelectItem value="list">Select from your lists</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {replySetting === 'list' && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Select from your lists
+                    </p>
+                    {listsError && <p className="text-xs text-destructive">{listsError}</p>}
+                    {isListsLoading ? (
+                      <p className="text-xs text-muted-foreground">Loading lists...</p>
+                    ) : lists.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No lists available.</p>
+                    ) : (
+                      <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                        {lists.map((list) => {
+                          const checked = listUris.includes(list.uri);
+                          return (
+                            <label key={list.uri} className="flex items-center gap-2 text-sm text-foreground">
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(value) => {
+                                  setListUris((prev) => {
+                                    if (value) {
+                                      return prev.includes(list.uri) ? prev : [...prev, list.uri];
+                                    }
+                                    return prev.filter((uri) => uri !== list.uri);
+                                  });
+                                }}
+                              />
+                              {list.name}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Allow quote posts</p>
+                    <p className="text-xs text-muted-foreground">Control if others can quote this post</p>
+                  </div>
+                  <Switch checked={allowQuotePosts} onCheckedChange={setAllowQuotePosts} />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" type="button" onClick={() => setInteractionOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="button" onClick={handleUpdateInteraction} disabled={isActionLoading}>
+                    Save
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Actions */}
           <div className="flex items-center gap-6 -ml-2 mt-3">

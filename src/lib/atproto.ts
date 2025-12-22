@@ -241,6 +241,215 @@ class ATProtoClient {
     }
   }
 
+  async deletePost(uri: string) {
+    try {
+      const repo = this.agent.session?.did;
+      if (!repo) throw new Error('No session');
+      const parts = uri.split('/');
+      const rkey = parts[parts.length - 1];
+      await this.agent.com.atproto.repo.deleteRecord({
+        repo,
+        collection: 'app.bsky.feed.post',
+        rkey,
+      });
+      return { success: true };
+    } catch (error: any) {
+      console.error('Delete post error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async muteActor(actor: string) {
+    try {
+      await this.agent.app.bsky.graph.muteActor({ actor });
+      return { success: true };
+    } catch (error: any) {
+      console.error('Mute actor error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async blockActor(actor: string) {
+    try {
+      const repo = this.agent.session?.did;
+      if (!repo) throw new Error('No session');
+      await this.agent.com.atproto.repo.createRecord({
+        repo,
+        collection: 'app.bsky.graph.block',
+        record: {
+          $type: 'app.bsky.graph.block',
+          subject: actor,
+          createdAt: new Date().toISOString(),
+        },
+      });
+      return { success: true };
+    } catch (error: any) {
+      console.error('Block actor error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async muteThread(uri: string) {
+    try {
+      await this.agent.app.bsky.graph.muteThread({ uri });
+      return { success: true };
+    } catch (error: any) {
+      console.error('Mute thread error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async reportPost(uri: string, cid: string, reason: string = 'Reported from Hillside') {
+    try {
+      await this.agent.com.atproto.moderation.createReport({
+        reasonType: 'com.atproto.moderation.defs#reasonOther',
+        reason,
+        subject: {
+          $type: 'com.atproto.repo.strongRef',
+          uri,
+          cid,
+        },
+      });
+      return { success: true };
+    } catch (error: any) {
+      console.error('Report post error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async updatePostInteraction({
+    postUri,
+    replySetting,
+    listUris,
+    allowQuotePosts,
+  }: {
+    postUri: string;
+    replySetting: 'anyone' | 'nobody' | 'followers' | 'following' | 'mentioned' | 'list';
+    listUris?: string[];
+    allowQuotePosts: boolean;
+  }) {
+    try {
+      const repo = this.agent.session?.did;
+      if (!repo) throw new Error('No session');
+      const rkey = postUri.split('/').pop();
+      if (!rkey) throw new Error('Invalid post URI');
+
+      let allowRules:
+        | Array<
+            | { $type: 'app.bsky.feed.threadgate#mentionRule' }
+            | { $type: 'app.bsky.feed.threadgate#followerRule' }
+            | { $type: 'app.bsky.feed.threadgate#followingRule' }
+            | { $type: 'app.bsky.feed.threadgate#listRule'; list: string }
+          >
+        | undefined;
+
+      if (replySetting === 'nobody') {
+        allowRules = [];
+      } else if (replySetting === 'followers') {
+        allowRules = [{ $type: 'app.bsky.feed.threadgate#followerRule' }];
+      } else if (replySetting === 'following') {
+        allowRules = [{ $type: 'app.bsky.feed.threadgate#followingRule' }];
+      } else if (replySetting === 'mentioned') {
+        allowRules = [{ $type: 'app.bsky.feed.threadgate#mentionRule' }];
+      } else if (replySetting === 'list') {
+        allowRules =
+          listUris?.length && listUris.length > 0
+            ? listUris.map((list) => ({
+                $type: 'app.bsky.feed.threadgate#listRule' as const,
+                list,
+              }))
+            : [];
+      }
+
+      if (replySetting === 'anyone') {
+        try {
+          await this.agent.com.atproto.repo.deleteRecord({
+            repo,
+            collection: 'app.bsky.feed.threadgate',
+            rkey,
+          });
+        } catch {
+          // ignore missing threadgate
+        }
+      } else {
+        await this.agent.com.atproto.repo.putRecord({
+          repo,
+          collection: 'app.bsky.feed.threadgate',
+          rkey,
+          record: {
+            $type: 'app.bsky.feed.threadgate',
+            post: postUri,
+            allow: allowRules,
+            createdAt: new Date().toISOString(),
+          },
+        });
+      }
+
+      if (!allowQuotePosts) {
+        await this.agent.com.atproto.repo.putRecord({
+          repo,
+          collection: 'app.bsky.feed.postgate',
+          rkey,
+          record: {
+            $type: 'app.bsky.feed.postgate',
+            post: postUri,
+            embeddingRules: [{ $type: 'app.bsky.feed.postgate#disableRule' }],
+            createdAt: new Date().toISOString(),
+          },
+        });
+      } else {
+        try {
+          await this.agent.com.atproto.repo.deleteRecord({
+            repo,
+            collection: 'app.bsky.feed.postgate',
+            rkey,
+          });
+        } catch {
+          // ignore missing postgate
+        }
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Update post interaction error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async pinPostToProfile(postUri: string, postCid: string) {
+    try {
+      const repo = this.agent.session?.did;
+      if (!repo) throw new Error('No session');
+      const record = await this.agent.com.atproto.repo.getRecord({
+        repo,
+        collection: 'app.bsky.actor.profile',
+        rkey: 'self',
+      });
+      const profile = record.data.value || {};
+      const updated = {
+        ...(profile as Record<string, unknown>),
+        pinnedPost: {
+          $type: 'com.atproto.repo.strongRef',
+          uri: postUri,
+          cid: postCid,
+        },
+      };
+      await this.agent.com.atproto.repo.putRecord({
+        repo,
+        collection: 'app.bsky.actor.profile',
+        rkey: 'self',
+        record: {
+          $type: 'app.bsky.actor.profile',
+          ...updated,
+        },
+      });
+      return { success: true };
+    } catch (error: any) {
+      console.error('Pin post error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   async getTimeline(cursor?: string, limit: number = 30) {
     try {
       const response = await this.agent.getTimeline({ cursor, limit });
