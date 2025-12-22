@@ -52,7 +52,7 @@ export function LeftSidebar() {
   }, [isAuthenticated, isChatSessionLoading, hasChatSession, location.pathname]);
 
   return (
-    <aside className="fixed left-24 top-6 bottom-6 w-72 bg-background hidden lg:flex flex-col z-40 px-6 rounded-2xl">
+    <aside className="fixed left-32 top-6 bottom-6 w-72 bg-transparent hidden lg:flex flex-col z-40 px-6">
       <div className="h-20 flex items-center justify-center">
         <Link to="/profile" className="group flex items-center justify-center">
           <div className="w-12 h-12 rounded-full overflow-hidden bg-muted ring-2 ring-border group-hover:ring-primary/60 transition-colors">
