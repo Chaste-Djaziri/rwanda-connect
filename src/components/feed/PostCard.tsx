@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Heart, Repeat2, Bookmark } from 'lucide-react';
 
@@ -109,9 +110,7 @@ const renderVideoEmbed = (embed: any) => {
   return (
     <div className="mt-3 overflow-hidden rounded-xl border border-border">
       {video.playlist ? (
-        <video controls poster={video.thumb} className="w-full max-h-96 bg-black">
-          <source src={video.playlist} />
-        </video>
+        <VideoPlayer src={video.playlist} poster={video.thumb} />
       ) : (
         <img src={video.thumb} alt="Video thumbnail" className="w-full max-h-96 object-cover" />
       )}
@@ -164,6 +163,111 @@ const renderEmbed = (embed?: any) => {
 
   return null;
 };
+
+function VideoPlayer({ src, poster }: { src: string; poster?: string }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleTime = () => setCurrentTime(video.currentTime);
+    const handleDuration = () => setDuration(video.duration || 0);
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    video.addEventListener('timeupdate', handleTime);
+    video.addEventListener('loadedmetadata', handleDuration);
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+
+    return () => {
+      video.removeEventListener('timeupdate', handleTime);
+      video.removeEventListener('loadedmetadata', handleDuration);
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+    };
+  }, []);
+
+  const togglePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play();
+    } else {
+      video.pause();
+    }
+  };
+
+  const toggleMute = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
+    setIsMuted(video.muted);
+  };
+
+  const scrub = (value: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = value;
+    setCurrentTime(value);
+  };
+
+  const formatTime = (value: number) => {
+    if (!Number.isFinite(value)) return '0:00';
+    const minutes = Math.floor(value / 60);
+    const seconds = Math.floor(value % 60).toString().padStart(2, '0');
+    return `${minutes}:${seconds}`;
+  };
+
+  return (
+    <div className="relative bg-black">
+      <video
+        ref={videoRef}
+        poster={poster}
+        className="w-full max-h-96 bg-black"
+        onClick={togglePlay}
+      >
+        <source src={src} />
+      </video>
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+        <div className="flex items-center gap-3 text-xs text-white">
+          <button
+            type="button"
+            onClick={togglePlay}
+            className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 transition-colors"
+          >
+            {isPlaying ? 'Pause' : 'Play'}
+          </button>
+          <button
+            type="button"
+            onClick={toggleMute}
+            className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 transition-colors"
+          >
+            {isMuted ? 'Unmute' : 'Mute'}
+          </button>
+          <div className="flex-1 flex items-center gap-2">
+            <input
+              type="range"
+              min={0}
+              max={duration || 0}
+              value={currentTime}
+              onChange={(event) => scrub(Number(event.target.value))}
+              className="w-full accent-white"
+            />
+            <span className="tabular-nums">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function PostCard({
   post,
