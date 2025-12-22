@@ -35,7 +35,7 @@ export default function FeedPage() {
     'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot';
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<'home' | 'discover' | 'following'>('discover');
+  const [activeTab, setActiveTab] = useState<'discover' | 'following'>('discover');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +71,7 @@ export default function FeedPage() {
 
       try {
         const result =
-          activeTab === 'discover' || activeTab === 'home'
+          activeTab === 'discover'
             ? await atprotoClient.getFeed(discoverFeedUri, refresh ? undefined : cursor, 30)
             : await atprotoClient.getTimeline(refresh ? undefined : cursor, 30);
         if (result.success && result.data) {
@@ -137,8 +137,8 @@ export default function FeedPage() {
           </div>
         </div>
         <div className="px-6 border-t border-border/60">
-          <div className="grid grid-cols-3 text-sm font-semibold">
-            {(['home', 'discover', 'following'] as const).map((tab) => (
+          <div className="grid grid-cols-2 text-sm font-semibold">
+            {(['discover', 'following'] as const).map((tab) => (
               <button
                 key={tab}
                 type="button"
@@ -149,7 +149,7 @@ export default function FeedPage() {
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {tab === 'home' ? 'Home' : tab === 'discover' ? 'Discover' : 'Following'}
+                {tab === 'discover' ? 'Discover' : 'Following'}
               </button>
             ))}
           </div>
