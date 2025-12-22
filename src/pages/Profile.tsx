@@ -620,7 +620,7 @@ export default function ProfilePage() {
                   activeTab === 'videos' ||
                   activeTab === 'likes') && (
                   <div>
-                    {tabData[activeTab].isLoading && (
+                    {tabData[activeTab].isLoading && tabData[activeTab].items.length === 0 && (
                       <>
                         {[...Array(3)].map((_, i) => (
                           <PostSkeleton key={`profile-post-${i}`} />
@@ -651,7 +651,7 @@ export default function ProfilePage() {
 
                 {activeTab === 'feeds' && (
                   <div>
-                    {tabData.feeds.isLoading && (
+                    {tabData.feeds.isLoading && tabData.feeds.items.length === 0 && (
                       <>
                         {[...Array(3)].map((_, i) => (
                           <PostSkeleton key={`profile-feed-${i}`} />
@@ -672,7 +672,7 @@ export default function ProfilePage() {
 
                 {activeTab === 'starterPacks' && (
                   <div>
-                    {tabData.starterPacks.isLoading && (
+                    {tabData.starterPacks.isLoading && tabData.starterPacks.items.length === 0 && (
                       <>
                         {[...Array(3)].map((_, i) => (
                           <PostSkeleton key={`profile-pack-${i}`} />
@@ -693,7 +693,7 @@ export default function ProfilePage() {
 
                 {activeTab === 'lists' && (
                   <div>
-                    {tabData.lists.isLoading && (
+                    {tabData.lists.isLoading && tabData.lists.items.length === 0 && (
                       <>
                         {[...Array(3)].map((_, i) => (
                           <PostSkeleton key={`profile-list-${i}`} />
