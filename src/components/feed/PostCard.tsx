@@ -170,7 +170,7 @@ function ImageGrid({ images }: { images: any[] }) {
       : imageCount === 2
         ? 'grid grid-cols-2 aspect-[4/3]'
         : imageCount === 3
-          ? 'grid grid-cols-[1.15fr_0.85fr] grid-rows-2 aspect-[4/3]'
+          ? 'grid grid-cols-[1fr_1fr] grid-rows-2 aspect-[16/9]'
           : 'grid grid-cols-2 grid-rows-2 aspect-[4/3]';
 
   return (
