@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Rwanda-inspired Deep Green Theme */
+    /* Rwanda-inspired Deep Green Theme - Dark Mode (Default) */
     --background: 150 25% 4%;
     --foreground: 60 20% 92%;
 
@@ -52,6 +52,82 @@
   .dark {
     --background: 150 25% 4%;
     --foreground: 60 20% 92%;
+
+    --card: 150 20% 6%;
+    --card-foreground: 60 20% 92%;
+
+    --popover: 150 20% 8%;
+    --popover-foreground: 60 20% 92%;
+
+    --primary: 152 40% 22%;
+    --primary-foreground: 60 20% 95%;
+
+    --secondary: 150 15% 12%;
+    --secondary-foreground: 60 15% 85%;
+
+    --muted: 150 10% 15%;
+    --muted-foreground: 150 8% 55%;
+
+    --accent: 142 35% 28%;
+    --accent-foreground: 60 20% 95%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 60 20% 95%;
+
+    --border: 150 15% 15%;
+    --input: 150 15% 12%;
+    --ring: 152 40% 30%;
+
+    --surface-elevated: 150 18% 8%;
+    --surface-overlay: 150 20% 10%;
+    --text-subtle: 150 10% 50%;
+    --text-muted: 150 8% 40%;
+    --success: 142 50% 35%;
+    --gradient-primary: linear-gradient(135deg, hsl(152 40% 22%), hsl(142 35% 28%));
+    --gradient-subtle: linear-gradient(180deg, hsl(150 20% 6%), hsl(150 25% 4%));
+    --shadow-glow: 0 0 40px hsl(152 40% 22% / 0.15);
+    --shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.4);
+  }
+
+  .light {
+    /* Light theme - Professional neutral with green accents */
+    --background: 60 10% 98%;
+    --foreground: 150 25% 10%;
+
+    --card: 60 10% 100%;
+    --card-foreground: 150 25% 10%;
+
+    --popover: 60 10% 100%;
+    --popover-foreground: 150 25% 10%;
+
+    --primary: 152 45% 28%;
+    --primary-foreground: 60 20% 98%;
+
+    --secondary: 150 8% 92%;
+    --secondary-foreground: 150 15% 25%;
+
+    --muted: 150 8% 94%;
+    --muted-foreground: 150 10% 45%;
+
+    --accent: 142 40% 35%;
+    --accent-foreground: 60 20% 98%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 60 20% 98%;
+
+    --border: 150 10% 88%;
+    --input: 150 8% 92%;
+    --ring: 152 45% 35%;
+
+    --surface-elevated: 60 10% 100%;
+    --surface-overlay: 150 8% 96%;
+    --text-subtle: 150 10% 55%;
+    --text-muted: 150 8% 65%;
+    --success: 142 55% 40%;
+    --gradient-primary: linear-gradient(135deg, hsl(152 45% 28%), hsl(142 40% 35%));
+    --gradient-subtle: linear-gradient(180deg, hsl(60 10% 100%), hsl(60 10% 98%));
+    --shadow-glow: 0 0 40px hsl(152 45% 28% / 0.1);
+    --shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.08);
   }
 }
 
