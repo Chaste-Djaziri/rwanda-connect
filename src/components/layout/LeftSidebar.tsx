@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { navItems } from './navItems';
 
 export function LeftSidebar() {
-  const leftOffset = 'calc(50% - 12.5vw - 18rem - 3rem)';
+  const leftOffset = 'calc(50% - 17.5vw - 18rem - 3rem)';
   const location = useLocation();
   const { user, hasChatSession, isChatSessionLoading, isAuthenticated } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);

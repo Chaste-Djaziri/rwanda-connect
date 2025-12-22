@@ -15,7 +15,7 @@ const consolidatedMessage = (message?: { text?: string; isDeleted?: boolean }) =
 };
 
 export function RightSidebar() {
-  const rightOffset = 'calc(50% - 12.5vw - 20rem - 3rem)';
+  const rightOffset = 'calc(50% - 17.5vw - 20rem - 3rem)';
   const location = useLocation();
   const { hasChatSession, isChatSessionLoading, isAuthenticated, user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
