@@ -31,7 +31,7 @@ export default function AuthPage() {
   const [suggestions, setSuggestions] = useState<Array<{ handle: string; displayName?: string; avatar?: string }>>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [savedAccounts, setSavedAccounts] = useState<AtpSessionData[]>([]);
+  const [savedAccounts, setSavedAccounts] = useState<Array<AtpSessionData & { avatar?: string }>>([]);
   const [showLoginForm, setShowLoginForm] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -73,9 +73,33 @@ export default function AuthPage() {
   }, [identifier]);
 
   useEffect(() => {
-    const sessions = atprotoClient.getStoredSessions();
-    setSavedAccounts(sessions);
-    setShowLoginForm(sessions.length === 0);
+    const loadAccounts = async () => {
+      const sessions = atprotoClient.getStoredSessions();
+      if (sessions.length === 0) {
+        setSavedAccounts([]);
+        setShowLoginForm(true);
+        return;
+      }
+      const avatars = await Promise.all(
+        sessions.map(async (session) => {
+          try {
+            const profile = await atprotoClient.getProfile(session.did);
+            return { did: session.did, avatar: profile.success ? profile.data?.avatar : undefined };
+          } catch {
+            return { did: session.did, avatar: undefined };
+          }
+        })
+      );
+      const avatarMap = new Map(avatars.map((entry) => [entry.did, entry.avatar]));
+      setSavedAccounts(
+        sessions.map((session) => ({
+          ...session,
+          avatar: avatarMap.get(session.did),
+        }))
+      );
+      setShowLoginForm(false);
+    };
+    loadAccounts();
   }, []);
 
   if (authLoading) {
@@ -183,8 +207,16 @@ export default function AuthPage() {
                       }}
                       className="w-full flex items-center gap-3 rounded-xl border border-border px-4 py-3 hover:bg-muted/40 transition-colors text-left"
                     >
-                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground">
-                        {account.handle?.[0]?.toUpperCase() ?? 'H'}
+                      <div className="h-10 w-10 rounded-full overflow-hidden bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground">
+                        {account.avatar ? (
+                          <img
+                            src={account.avatar}
+                            alt={account.handle}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span>{account.handle?.[0]?.toUpperCase() ?? 'H'}</span>
+                        )}
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold text-foreground truncate">@{account.handle}</p>
