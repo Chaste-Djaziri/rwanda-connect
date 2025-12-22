@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
@@ -123,9 +123,16 @@ export default function FeedsPage() {
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isPinning, setIsPinning] = useState<string | null>(null);
+  const [suggestedCursor, setSuggestedCursor] = useState<string | undefined>();
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  const fetchFeeds = async () => {
-    setIsLoading(true);
+  const fetchFeeds = async (refreshSuggested = true) => {
+    if (refreshSuggested) {
+      setIsLoading(true);
+    } else {
+      setIsLoadingMore(true);
+    }
     try {
       const prefsResult = await atprotoClient.getPreferences();
       const prefs = prefsResult.success && prefsResult.data ? prefsResult.data : [];
@@ -161,27 +168,46 @@ export default function FeedsPage() {
         }
       }
 
-      const suggested = await atprotoClient.getSuggestedFeeds();
+      const suggested = await atprotoClient.getSuggestedFeeds(refreshSuggested ? undefined : suggestedCursor, 20);
       if (suggested.success && suggested.data) {
-        setSuggestedFeeds(
-          suggested.data.map((feed: any) => ({
-            uri: feed.uri,
-            displayName: feed.displayName,
-            description: feed.description,
-            avatar: feed.avatar,
-            likeCount: feed.likeCount,
-            creator: { handle: feed.creator.handle },
-          }))
-        );
+        const mapped = suggested.data.map((feed: any) => ({
+          uri: feed.uri,
+          displayName: feed.displayName,
+          description: feed.description,
+          avatar: feed.avatar,
+          likeCount: feed.likeCount,
+          creator: { handle: feed.creator.handle },
+        }));
+        setSuggestedFeeds((prev) => (refreshSuggested ? mapped : [...prev, ...mapped]));
+        setSuggestedCursor(suggested.cursor);
       }
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    fetchFeeds();
+    fetchFeeds(true);
   }, []);
+
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !suggestedCursor) return;
+    if (isLoading || isLoadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          fetchFeeds(false);
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [suggestedCursor, isLoading, isLoadingMore]);
 
   const pinnedSet = useMemo(
     () => new Set(savedFeeds.filter((item) => item.pinned).map((item) => item.value)),
@@ -314,6 +340,8 @@ export default function FeedsPage() {
             ) : (
               <p className="text-xs text-muted-foreground">No feeds found.</p>
             )}
+
+            {suggestedCursor && <div ref={loadMoreRef} className="h-6" />}
           </div>
         </section>
       </div>
