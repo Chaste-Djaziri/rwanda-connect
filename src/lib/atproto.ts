@@ -173,6 +173,71 @@ class ATProtoClient {
     }
   }
 
+  async getAuthorFeed(
+    actor: string,
+    filter:
+      | 'posts_with_replies'
+      | 'posts_no_replies'
+      | 'posts_with_media'
+      | 'posts_with_video'
+      | 'posts_and_author_threads',
+    cursor?: string,
+    limit: number = 30
+  ) {
+    try {
+      const response = await this.agent.app.bsky.feed.getAuthorFeed({
+        actor,
+        filter,
+        cursor,
+        limit,
+      });
+      return { success: true, data: response.data.feed, cursor: response.data.cursor };
+    } catch (error: any) {
+      console.error('Get author feed error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getActorLikes(actor: string, cursor?: string, limit: number = 30) {
+    try {
+      const response = await this.agent.app.bsky.feed.getActorLikes({ actor, cursor, limit });
+      return { success: true, data: response.data.feed, cursor: response.data.cursor };
+    } catch (error: any) {
+      console.error('Get actor likes error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getActorFeeds(actor: string, cursor?: string, limit: number = 30) {
+    try {
+      const response = await this.agent.app.bsky.feed.getActorFeeds({ actor, cursor, limit });
+      return { success: true, data: response.data.feeds, cursor: response.data.cursor };
+    } catch (error: any) {
+      console.error('Get actor feeds error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getActorStarterPacks(actor: string, cursor?: string, limit: number = 30) {
+    try {
+      const response = await this.agent.app.bsky.graph.getActorStarterPacks({ actor, cursor, limit });
+      return { success: true, data: response.data.starterPacks, cursor: response.data.cursor };
+    } catch (error: any) {
+      console.error('Get actor starter packs error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getActorLists(actor: string, cursor?: string, limit: number = 30) {
+    try {
+      const response = await this.agent.app.bsky.graph.getLists({ actor, cursor, limit });
+      return { success: true, data: response.data.lists, cursor: response.data.cursor };
+    } catch (error: any) {
+      console.error('Get actor lists error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Fetch notifications using AT Protocol listNotifications endpoint
   async getNotifications(cursor?: string, limit: number = 30) {
     try {

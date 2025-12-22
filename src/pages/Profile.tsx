@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, List, Sparkles, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { FeedPost, PostCard } from '@/components/feed/PostCard';
+import { getSavedPosts, removeSavedPost, savePost, SavedPost } from '@/lib/savedPosts';
 
 interface ProfileData {
   did: string;
@@ -19,34 +22,235 @@ interface ProfileData {
   createdAt?: string;
 }
 
+type TabKey =
+  | 'posts'
+  | 'replies'
+  | 'media'
+  | 'videos'
+  | 'likes'
+  | 'feeds'
+  | 'starterPacks'
+  | 'lists';
+
+interface TabState<T> {
+  items: T[];
+  cursor?: string;
+  isLoading: boolean;
+  error?: string | null;
+  hasLoaded: boolean;
+}
+
+const createInitialTabState = (): Record<TabKey, TabState<any>> => ({
+  posts: { items: [], cursor: undefined, isLoading: false, error: null, hasLoaded: false },
+  replies: { items: [], cursor: undefined, isLoading: false, error: null, hasLoaded: false },
+  media: { items: [], cursor: undefined, isLoading: false, error: null, hasLoaded: false },
+  videos: { items: [], cursor: undefined, isLoading: false, error: null, hasLoaded: false },
+  likes: { items: [], cursor: undefined, isLoading: false, error: null, hasLoaded: false },
+  feeds: { items: [], cursor: undefined, isLoading: false, error: null, hasLoaded: false },
+  starterPacks: { items: [], cursor: undefined, isLoading: false, error: null, hasLoaded: false },
+  lists: { items: [], cursor: undefined, isLoading: false, error: null, hasLoaded: false },
+});
+
+const tabConfig: Array<{ key: TabKey; label: string }> = [
+  { key: 'posts', label: 'Posts' },
+  { key: 'replies', label: 'Replies' },
+  { key: 'media', label: 'Media' },
+  { key: 'videos', label: 'Videos' },
+  { key: 'likes', label: 'Likes' },
+  { key: 'feeds', label: 'Feeds' },
+  { key: 'starterPacks', label: 'Starter packs' },
+  { key: 'lists', label: 'Lists' },
+];
+
+const mapFeedItem = (item: any): FeedPost => ({
+  uri: item.post.uri,
+  cid: item.post.cid,
+  author: {
+    did: item.post.author.did,
+    handle: item.post.author.handle,
+    displayName: item.post.author.displayName,
+    avatar: item.post.author.avatar,
+  },
+  record: {
+    text: item.post.record.text,
+    createdAt: item.post.record.createdAt,
+  },
+  replyCount: item.post.replyCount ?? 0,
+  repostCount: item.post.repostCount ?? 0,
+  likeCount: item.post.likeCount ?? 0,
+  embed: item.post.embed,
+});
+
+function PostSkeleton() {
+  return (
+    <div className="p-4 border-b border-border">
+      <div className="flex gap-3">
+        <Skeleton className="w-11 h-11 rounded-full" />
+        <div className="flex-1 space-y-3">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+          <div className="flex gap-6 pt-2">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-12" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeedCard({ feed }: { feed: any }) {
+  return (
+    <div className="p-4 border-b border-border hover:bg-muted/30 transition-colors">
+      <div className="flex gap-3">
+        <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted shrink-0">
+          {feed.avatar ? (
+            <img src={feed.avatar} alt={feed.displayName} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center gradient-primary">
+              <TrendingUp className="w-5 h-5 text-primary-foreground" />
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-foreground truncate">
+            {feed.displayName || feed?.record?.displayName || 'Feed'}
+          </h3>
+          {feed.creator?.handle && (
+            <p className="text-sm text-muted-foreground truncate">by @{feed.creator.handle}</p>
+          )}
+          {(feed.description || feed?.record?.description) && (
+            <p className="text-sm text-foreground/80 mt-1 line-clamp-2">
+              {feed.description || feed?.record?.description}
+            </p>
+          )}
+          {typeof feed.likeCount === 'number' && (
+            <p className="text-xs text-muted-foreground mt-2">
+              {feed.likeCount.toLocaleString()} likes
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StarterPackCard({ pack }: { pack: any }) {
+  return (
+    <div className="p-4 border-b border-border hover:bg-muted/30 transition-colors">
+      <div className="flex gap-3">
+        <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted shrink-0">
+          {pack.avatar ? (
+            <img src={pack.avatar} alt={pack.displayName} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center gradient-primary">
+              <Sparkles className="w-5 h-5 text-primary-foreground" />
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-foreground truncate">
+            {pack.displayName || pack?.record?.name || 'Starter pack'}
+          </h3>
+          {pack.creator?.handle && (
+            <p className="text-sm text-muted-foreground truncate">by @{pack.creator.handle}</p>
+          )}
+          {(pack.description || pack?.record?.description) && (
+            <p className="text-sm text-foreground/80 mt-1 line-clamp-2">
+              {pack.description || pack?.record?.description}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ListCard({ list }: { list: any }) {
+  return (
+    <div className="p-4 border-b border-border hover:bg-muted/30 transition-colors">
+      <div className="flex gap-3">
+        <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted shrink-0">
+          {list.avatar ? (
+            <img src={list.avatar} alt={list.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center gradient-primary">
+              <List className="w-5 h-5 text-primary-foreground" />
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-foreground truncate">{list.name || 'List'}</h3>
+          {list.creator?.handle && (
+            <p className="text-sm text-muted-foreground truncate">by @{list.creator.handle}</p>
+          )}
+          {list.description && (
+            <p className="text-sm text-foreground/80 mt-1 line-clamp-2">{list.description}</p>
+          )}
+          {list.purpose && (
+            <p className="text-xs text-muted-foreground mt-2">{list.purpose.replace('app.bsky.graph.defs#', '')}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { handle } = useParams<{ handle: string }>();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<
-    'posts' | 'replies' | 'media' | 'videos' | 'likes' | 'feeds' | 'starterPacks' | 'lists'
-  >('posts');
+  const [activeTab, setActiveTab] = useState<TabKey>('posts');
+  const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
+  const [tabVisibility, setTabVisibility] = useState<Record<TabKey, boolean>>({
+    posts: true,
+    replies: false,
+    media: false,
+    videos: false,
+    likes: false,
+    feeds: false,
+    starterPacks: false,
+    lists: false,
+  });
+  const [tabData, setTabData] = useState<Record<TabKey, TabState<any>>>(createInitialTabState);
   const isOwnProfile = profile?.handle && user?.handle && profile.handle === user.handle;
+  const availableTabs = useMemo(
+    () => tabConfig.filter((tab) => tabVisibility[tab.key]),
+    [tabVisibility]
+  );
 
-  const availableTabs = [
-    { key: 'posts', label: 'Posts', show: (profile?.postsCount ?? 0) > 0 || isOwnProfile },
-    { key: 'replies', label: 'Replies', show: isOwnProfile },
-    { key: 'media', label: 'Media', show: isOwnProfile },
-    { key: 'videos', label: 'Videos', show: isOwnProfile },
-    { key: 'likes', label: 'Likes', show: isOwnProfile },
-    { key: 'feeds', label: 'Feeds', show: isOwnProfile },
-    { key: 'starterPacks', label: 'Starter packs', show: isOwnProfile },
-    { key: 'lists', label: 'Lists', show: isOwnProfile },
-  ].filter((tab) => tab.show);
+  useEffect(() => {
+    const saved = getSavedPosts().map((post) => post.uri);
+    setSavedUris(new Set(saved));
+  }, []);
+
+  const toggleSave = useCallback((post: FeedPost) => {
+    setSavedUris((prev) => {
+      const next = new Set(prev);
+      if (next.has(post.uri)) {
+        next.delete(post.uri);
+        removeSavedPost(post.uri);
+      } else {
+        savePost(post as SavedPost);
+        next.add(post.uri);
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (availableTabs.length === 0) return;
     if (!availableTabs.find((tab) => tab.key === activeTab)) {
       setActiveTab(availableTabs[0].key as typeof activeTab);
     }
-  }, [availableTabs.length, profile?.handle]);
+  }, [availableTabs, activeTab]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -84,6 +288,167 @@ export default function ProfilePage() {
 
     fetchProfile();
   }, [authLoading, isAuthenticated, user?.handle, handle]);
+
+  useEffect(() => {
+    if (!profile) return;
+    setTabData(createInitialTabState());
+  }, [profile?.did, profile?.handle]);
+
+  useEffect(() => {
+    if (!profile || authLoading || !isAuthenticated) return;
+    if (isOwnProfile) {
+      setTabVisibility({
+        posts: true,
+        replies: true,
+        media: true,
+        videos: true,
+        likes: true,
+        feeds: true,
+        starterPacks: true,
+        lists: true,
+      });
+      return;
+    }
+
+    setTabVisibility({
+      posts: (profile.postsCount ?? 0) > 0,
+      replies: false,
+      media: false,
+      videos: false,
+      likes: false,
+      feeds: false,
+      starterPacks: false,
+      lists: false,
+    });
+
+    let isActive = true;
+    const actor = profile.did || profile.handle;
+
+    const checkTab = async (tab: TabKey) => {
+      try {
+        let result: any;
+        switch (tab) {
+          case 'replies':
+            result = await atprotoClient.getAuthorFeed(actor, 'posts_with_replies', undefined, 1);
+            break;
+          case 'media':
+            result = await atprotoClient.getAuthorFeed(actor, 'posts_with_media', undefined, 1);
+            break;
+          case 'videos':
+            result = await atprotoClient.getAuthorFeed(actor, 'posts_with_video', undefined, 1);
+            break;
+          case 'likes':
+            result = await atprotoClient.getActorLikes(actor, undefined, 1);
+            break;
+          case 'feeds':
+            result = await atprotoClient.getActorFeeds(actor, undefined, 1);
+            break;
+          case 'starterPacks':
+            result = await atprotoClient.getActorStarterPacks(actor, undefined, 1);
+            break;
+          case 'lists':
+            result = await atprotoClient.getActorLists(actor, undefined, 1);
+            break;
+          default:
+            return;
+        }
+        if (!isActive) return;
+        if (result?.success && Array.isArray(result.data) && result.data.length > 0) {
+          setTabVisibility((prev) => ({ ...prev, [tab]: true }));
+        }
+      } catch (err) {
+        if (!isActive) return;
+        setTabVisibility((prev) => ({ ...prev, [tab]: false }));
+      }
+    };
+
+    const tabsToCheck: TabKey[] = ['replies', 'media', 'videos', 'likes', 'feeds', 'starterPacks', 'lists'];
+    Promise.all(tabsToCheck.map((tab) => checkTab(tab))).catch(() => undefined);
+
+    return () => {
+      isActive = false;
+    };
+  }, [profile?.did, profile?.handle, profile?.postsCount, isOwnProfile, authLoading, isAuthenticated]);
+
+  const fetchTabData = useCallback(
+    async (tab: TabKey, refresh = false) => {
+      if (!profile) return;
+      const actor = profile.did || profile.handle;
+      const cursor = refresh ? undefined : tabData[tab].cursor;
+
+      setTabData((prev) => ({
+        ...prev,
+        [tab]: { ...prev[tab], isLoading: true, error: null },
+      }));
+
+      try {
+        let result: any;
+        switch (tab) {
+          case 'posts':
+            result = await atprotoClient.getAuthorFeed(actor, 'posts_no_replies', cursor, 30);
+            break;
+          case 'replies':
+            result = await atprotoClient.getAuthorFeed(actor, 'posts_with_replies', cursor, 30);
+            break;
+          case 'media':
+            result = await atprotoClient.getAuthorFeed(actor, 'posts_with_media', cursor, 30);
+            break;
+          case 'videos':
+            result = await atprotoClient.getAuthorFeed(actor, 'posts_with_video', cursor, 30);
+            break;
+          case 'likes':
+            result = await atprotoClient.getActorLikes(actor, cursor, 30);
+            break;
+          case 'feeds':
+            result = await atprotoClient.getActorFeeds(actor, cursor, 30);
+            break;
+          case 'starterPacks':
+            result = await atprotoClient.getActorStarterPacks(actor, cursor, 30);
+            break;
+          case 'lists':
+            result = await atprotoClient.getActorLists(actor, cursor, 30);
+            break;
+          default:
+            return;
+        }
+
+        if (result?.success && Array.isArray(result.data)) {
+          const mapped =
+            tab === 'feeds' || tab === 'starterPacks' || tab === 'lists'
+              ? result.data
+              : result.data.map((item: any) => mapFeedItem(item));
+          setTabData((prev) => ({
+            ...prev,
+            [tab]: {
+              items: refresh ? mapped : [...prev[tab].items, ...mapped],
+              cursor: result.cursor,
+              isLoading: false,
+              error: null,
+              hasLoaded: true,
+            },
+          }));
+        } else {
+          setTabData((prev) => ({
+            ...prev,
+            [tab]: { ...prev[tab], isLoading: false, error: 'Failed to load content', hasLoaded: true },
+          }));
+        }
+      } catch (err) {
+        setTabData((prev) => ({
+          ...prev,
+          [tab]: { ...prev[tab], isLoading: false, error: 'Failed to load content', hasLoaded: true },
+        }));
+      }
+    },
+    [profile, tabData]
+  );
+
+  useEffect(() => {
+    if (!profile || !tabVisibility[activeTab]) return;
+    if (tabData[activeTab].isLoading) return;
+    if (tabData[activeTab].hasLoaded) return;
+    fetchTabData(activeTab, true);
+  }, [activeTab, profile?.did, profile?.handle, tabVisibility, tabData, fetchTabData]);
 
   return (
     <AppLayout>
@@ -161,13 +526,19 @@ export default function ProfilePage() {
             <div className="flex gap-6 mb-4">
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
-                  {profile?.followsCount.toLocaleString()}
+                  {profile?.postsCount?.toLocaleString() ?? '0'}
+                </span>
+                <span className="text-muted-foreground">Posts</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-foreground">
+                  {profile?.followsCount?.toLocaleString() ?? '0'}
                 </span>
                 <span className="text-muted-foreground">Following</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
-                  {profile?.followersCount.toLocaleString()}
+                  {profile?.followersCount?.toLocaleString() ?? '0'}
                 </span>
                 <span className="text-muted-foreground">Followers</span>
               </div>
@@ -214,16 +585,140 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            {availableTabs.length === 0 && 'No public content available.'}
-            {availableTabs.length > 0 && activeTab === 'posts' && 'Posts will appear here.'}
-            {activeTab === 'replies' && 'Replies will appear here.'}
-            {activeTab === 'media' && 'Media will appear here.'}
-            {activeTab === 'videos' && 'Videos will appear here.'}
-            {activeTab === 'likes' && 'Likes will appear here.'}
-            {activeTab === 'feeds' && 'Feeds will appear here.'}
-            {activeTab === 'starterPacks' && 'Starter packs will appear here.'}
-            {activeTab === 'lists' && 'Lists will appear here.'}
+          <div className="py-6">
+            {availableTabs.length === 0 && (
+              <div className="text-center text-sm text-muted-foreground">
+                No public content available.
+              </div>
+            )}
+
+            {availableTabs.length > 0 && (
+              <div>
+                {(activeTab === 'posts' ||
+                  activeTab === 'replies' ||
+                  activeTab === 'media' ||
+                  activeTab === 'videos' ||
+                  activeTab === 'likes') && (
+                  <div>
+                    {tabData[activeTab].isLoading && (
+                      <>
+                        {[...Array(3)].map((_, i) => (
+                          <PostSkeleton key={`profile-post-${i}`} />
+                        ))}
+                      </>
+                    )}
+
+                    {!tabData[activeTab].isLoading && tabData[activeTab].items.length === 0 && (
+                      <div className="text-center text-sm text-muted-foreground py-6">
+                        No posts to show yet.
+                      </div>
+                    )}
+
+                    {!tabData[activeTab].isLoading && tabData[activeTab].items.length > 0 && (
+                      <div>
+                        {(tabData[activeTab].items as FeedPost[]).map((post) => (
+                          <PostCard
+                            key={post.uri}
+                            post={post}
+                            isSaved={savedUris.has(post.uri)}
+                            onToggleSave={toggleSave}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'feeds' && (
+                  <div>
+                    {tabData.feeds.isLoading && (
+                      <>
+                        {[...Array(3)].map((_, i) => (
+                          <PostSkeleton key={`profile-feed-${i}`} />
+                        ))}
+                      </>
+                    )}
+                    {!tabData.feeds.isLoading && tabData.feeds.items.length === 0 && (
+                      <div className="text-center text-sm text-muted-foreground py-6">
+                        No feeds available.
+                      </div>
+                    )}
+                    {!tabData.feeds.isLoading &&
+                      tabData.feeds.items.map((feed: any) => (
+                        <FeedCard key={feed.uri} feed={feed} />
+                      ))}
+                  </div>
+                )}
+
+                {activeTab === 'starterPacks' && (
+                  <div>
+                    {tabData.starterPacks.isLoading && (
+                      <>
+                        {[...Array(3)].map((_, i) => (
+                          <PostSkeleton key={`profile-pack-${i}`} />
+                        ))}
+                      </>
+                    )}
+                    {!tabData.starterPacks.isLoading && tabData.starterPacks.items.length === 0 && (
+                      <div className="text-center text-sm text-muted-foreground py-6">
+                        No starter packs available.
+                      </div>
+                    )}
+                    {!tabData.starterPacks.isLoading &&
+                      tabData.starterPacks.items.map((pack: any) => (
+                        <StarterPackCard key={pack.uri} pack={pack} />
+                      ))}
+                  </div>
+                )}
+
+                {activeTab === 'lists' && (
+                  <div>
+                    {tabData.lists.isLoading && (
+                      <>
+                        {[...Array(3)].map((_, i) => (
+                          <PostSkeleton key={`profile-list-${i}`} />
+                        ))}
+                      </>
+                    )}
+                    {!tabData.lists.isLoading && tabData.lists.items.length === 0 && (
+                      <div className="text-center text-sm text-muted-foreground py-6">
+                        No lists available.
+                      </div>
+                    )}
+                    {!tabData.lists.isLoading &&
+                      tabData.lists.items.map((list: any) => (
+                        <ListCard key={list.uri} list={list} />
+                      ))}
+                  </div>
+                )}
+
+                {tabData[activeTab].error && (
+                  <div className="mt-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                    {tabData[activeTab].error}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => fetchTabData(activeTab, true)}
+                      className="ml-2"
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                )}
+
+                {tabData[activeTab].cursor && (
+                  <div className="flex justify-center py-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => fetchTabData(activeTab, false)}
+                      disabled={tabData[activeTab].isLoading}
+                    >
+                      {tabData[activeTab].isLoading ? 'Loading...' : 'Load more'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {error && (
