@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2, AlertCircle, Lock, AtSign } from 'lucide-react';
 import { z } from 'zod';
+import { atprotoClient } from '@/lib/atproto';
 
 const loginSchema = z.object({
   identifier: z.string()
@@ -25,6 +27,9 @@ export default function AuthPage() {
   
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [suggestions, setSuggestions] = useState<Array<{ handle: string; displayName?: string; avatar?: string }>>([]);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -119,12 +124,70 @@ export default function AuthPage() {
                     type="text"
                     placeholder="yourhandle.bsky.social"
                     value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
+                    onChange={(e) => {
+                      setIdentifier(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => {
+                      setTimeout(() => setShowSuggestions(false), 150);
+                    }}
                     className="pl-11"
                     disabled={isLoading}
                     autoComplete="username"
                     autoFocus
                   />
+                  {showSuggestions && (isSuggesting || suggestions.length > 0) && (
+                    <div className="absolute left-0 right-0 mt-2 rounded-xl border border-border bg-background shadow-card z-20">
+                      {isSuggesting ? (
+                        <div className="p-3 space-y-2">
+                          {[...Array(3)].map((_, i) => (
+                            <div key={i} className="flex items-center gap-3">
+                              <Skeleton className="h-8 w-8 rounded-full" />
+                              <div className="space-y-1 flex-1">
+                                <Skeleton className="h-3 w-24" />
+                                <Skeleton className="h-3 w-32" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="py-2">
+                          {suggestions.map((actor) => (
+                            <button
+                              type="button"
+                              key={actor.handle}
+                              onClick={() => {
+                                setIdentifier(actor.handle);
+                                setShowSuggestions(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-muted/40 transition-colors"
+                            >
+                              <div className="h-8 w-8 rounded-full overflow-hidden bg-muted shrink-0">
+                                {actor.avatar ? (
+                                  <img
+                                    src={actor.avatar}
+                                    alt={actor.displayName || actor.handle}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="h-full w-full flex items-center justify-center text-xs font-semibold text-muted-foreground">
+                                    {actor.handle[0]?.toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">
+                                  {actor.displayName || actor.handle}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate">@{actor.handle}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -207,3 +270,38 @@ export default function AuthPage() {
     </div>
   );
 }
+  useEffect(() => {
+    const query = identifier.trim();
+    if (!query || query.length < 2) {
+      setSuggestions([]);
+      setIsSuggesting(false);
+      return;
+    }
+
+    let isActive = true;
+    setIsSuggesting(true);
+    const timeout = setTimeout(async () => {
+      try {
+        const result = await atprotoClient.searchActors(query, undefined, 5);
+        if (!isActive) return;
+        if (result.success && result.data) {
+          setSuggestions(
+            result.data.map((actor: any) => ({
+              handle: actor.handle,
+              displayName: actor.displayName,
+              avatar: actor.avatar,
+            }))
+          );
+        } else {
+          setSuggestions([]);
+        }
+      } finally {
+        if (isActive) setIsSuggesting(false);
+      }
+    }, 250);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timeout);
+    };
+  }, [identifier]);
