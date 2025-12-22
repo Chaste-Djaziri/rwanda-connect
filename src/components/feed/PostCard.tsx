@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MessageSquare, Heart, Repeat2, Bookmark } from 'lucide-react';
+import { MessageSquare, Heart, Repeat2, Bookmark, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 export interface FeedPost {
   uri: string;
@@ -113,21 +114,124 @@ const renderExternalEmbed = (embed: any) => {
   );
 };
 
+function ImageGrid({ images }: { images: any[] }) {
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const imageCount = images.length;
+  const displayImages = imageCount > 4 ? images.slice(0, 4) : images;
+  const remaining = imageCount - 4;
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowRight') {
+        setActiveIndex((prev) => (prev + 1) % imageCount);
+      }
+      if (event.key === 'ArrowLeft') {
+        setActiveIndex((prev) => (prev - 1 + imageCount) % imageCount);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [open, imageCount]);
+
+  const openLightbox = (index: number) => {
+    setActiveIndex(index);
+    setOpen(true);
+  };
+
+  const nextImage = () => {
+    setActiveIndex((prev) => (prev + 1) % imageCount);
+  };
+
+  const prevImage = () => {
+    setActiveIndex((prev) => (prev - 1 + imageCount) % imageCount);
+  };
+
+  const gridClass =
+    imageCount === 1
+      ? 'grid grid-cols-1'
+      : imageCount === 2
+        ? 'grid grid-cols-2'
+        : 'grid grid-cols-2 grid-rows-2';
+
+  return (
+    <>
+      <div className={`mt-3 ${gridClass} gap-2 rounded-xl overflow-hidden border border-border`}>
+        {displayImages.map((image: any, index: number) => {
+          const isLastWithOverlay = imageCount > 4 && index === 3;
+          const isTall = imageCount === 3 && index === 0;
+          const isSingle = imageCount === 1;
+          return (
+            <button
+              key={`${image?.thumb ?? image?.fullsize ?? 'image'}-${index}`}
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                openLightbox(index);
+              }}
+              className={`relative group overflow-hidden bg-black ${
+                isTall ? 'row-span-2' : ''
+              }`}
+            >
+              <img
+                src={isGifUrl(image.fullsize) ? image.fullsize : image.thumb || image.fullsize}
+                alt={image.alt || 'Post image'}
+                className={`w-full ${
+                  isSingle ? 'max-h-[32rem] object-contain' : 'aspect-[4/3] object-cover'
+                }`}
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+              {isLastWithOverlay && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-white text-2xl font-semibold">
+                  +{remaining}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-none w-[95vw] h-[90vh] bg-black/95 border-none p-0 shadow-none flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center">
+            <img
+              src={images[activeIndex]?.fullsize || images[activeIndex]?.thumb}
+              alt={images[activeIndex]?.alt || 'Post image'}
+              className="max-h-[85vh] max-w-[90vw] object-contain"
+            />
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 text-xs text-white/80">
+              {activeIndex + 1} / {imageCount}
+            </div>
+            {imageCount > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={prevImage}
+                  className="absolute left-6 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={nextImage}
+                  className="absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 const renderImagesEmbed = (embed: any) => {
   const images = embed?.images;
-  if (!Array.isArray(images)) return null;
-  return (
-    <div className="mt-3 grid gap-2 rounded-xl overflow-hidden border border-border">
-      {images.map((image: any, index: number) => (
-        <img
-          key={`${image?.thumb ?? 'image'}-${index}`}
-          src={isGifUrl(image.fullsize) ? image.fullsize : image.thumb || image.fullsize}
-          alt={image.alt || 'Post image'}
-          className="w-full h-auto object-contain bg-black"
-        />
-      ))}
-    </div>
-  );
+  if (!Array.isArray(images) || images.length === 0) return null;
+  return <ImageGrid images={images} />;
 };
 
 const renderVideoEmbed = (embed: any) => {
