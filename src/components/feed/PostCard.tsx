@@ -194,7 +194,7 @@ function ImageGrid({ images }: { images: any[] }) {
                 openLightbox(index);
               }}
               className={`relative group overflow-hidden bg-black ${
-                isTall ? 'row-span-2' : ''
+                isTall ? 'row-span-1 self-center' : ''
               }`}
             >
               <img
