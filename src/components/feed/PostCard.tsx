@@ -133,7 +133,7 @@ function ImageGrid({ images }: { images: any[] }) {
             .filter((value): value is number => Number.isFinite(value as number));
           if (ratios.length === 0) return undefined;
           const avg = ratios.reduce((sum, ratio) => sum + ratio, 0) / ratios.length;
-          return Math.max(1.1, Math.min(avg, 2.5));
+          return Math.max(1.6, Math.min(avg, 2.5));
         })()
       : undefined;
 
