@@ -120,6 +120,22 @@ function ImageGrid({ images }: { images: any[] }) {
   const imageCount = images.length;
   const displayImages = imageCount > 4 ? images.slice(0, 4) : images;
   const remaining = imageCount - 4;
+  const twoUpAspectRatio =
+    imageCount === 2
+      ? (() => {
+          const ratios = images
+            .map((image) => {
+              const width = image?.aspectRatio?.width;
+              const height = image?.aspectRatio?.height;
+              if (!width || !height) return null;
+              return width / height;
+            })
+            .filter((value): value is number => Number.isFinite(value as number));
+          if (ratios.length === 0) return undefined;
+          const avg = ratios.reduce((sum, ratio) => sum + ratio, 0) / ratios.length;
+          return Math.max(0.6, Math.min(avg, 2.5));
+        })()
+      : undefined;
 
   useEffect(() => {
     if (!open) return;
@@ -157,7 +173,10 @@ function ImageGrid({ images }: { images: any[] }) {
 
   return (
     <>
-      <div className={`mt-3 ${gridClass} gap-2 rounded-xl overflow-hidden border border-border`}>
+      <div
+        className={`mt-3 ${gridClass} gap-2 rounded-xl overflow-hidden border border-border`}
+        style={twoUpAspectRatio ? { aspectRatio: twoUpAspectRatio } : undefined}
+      >
         {displayImages.map((image: any, index: number) => {
           const isLastWithOverlay = imageCount > 4 && index === 3;
           const isTall = imageCount === 3 && index === 0;
