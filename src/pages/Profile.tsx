@@ -108,14 +108,15 @@ function FeedCard({
   feed,
   onPin,
   isPinning,
+  isPinned,
 }: {
   feed: any;
   onPin: (uri: string) => void;
   isPinning: boolean;
+  isPinned: boolean;
 }) {
   const feedId = feed.uri?.split('/').pop();
   const route = feedId ? `/profile/${feed.creator?.handle}/feed/${feedId}` : '#';
-  const isPinned = Boolean(feed.viewer?.pinned);
   return (
     <Link to={route} className="block p-4 border-b border-border hover:bg-muted/30 transition-colors">
       <div className="flex gap-3">
@@ -237,6 +238,7 @@ export default function ProfilePage() {
   const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [pinningFeedUri, setPinningFeedUri] = useState<string | null>(null);
+  const [pinnedFeedUris, setPinnedFeedUris] = useState<Set<string>>(new Set());
   const [tabVisibility, setTabVisibility] = useState<Record<TabKey, boolean>>({
     posts: true,
     replies: false,
@@ -257,6 +259,21 @@ export default function ProfilePage() {
   useEffect(() => {
     const saved = getSavedPosts().map((post) => post.uri);
     setSavedUris(new Set(saved));
+  }, []);
+
+  useEffect(() => {
+    const loadPinnedFeeds = async () => {
+      const prefsResult = await atprotoClient.getPreferences();
+      if (!prefsResult.success || !prefsResult.data) return;
+      const savedPref = prefsResult.data.find(
+        (pref: any) =>
+          pref?.$type === 'app.bsky.actor.defs#savedFeedsPrefV2' ||
+          pref?.$type === 'app.bsky.actor.defs#savedFeedsPref'
+      );
+      const items: Array<{ value: string; pinned: boolean }> = savedPref?.items || [];
+      setPinnedFeedUris(new Set(items.filter((item) => item.pinned).map((item) => item.value)));
+    };
+    loadPinnedFeeds().catch(() => undefined);
   }, []);
 
   const toggleSave = useCallback((post: FeedPost) => {
@@ -474,11 +491,16 @@ export default function ProfilePage() {
   const handlePinFeed = async (uri: string) => {
     if (pinningFeedUri) return;
     setPinningFeedUri(uri);
-    const currentFeed = tabData.feeds.items.find((item: any) => item.uri === uri);
-    if (currentFeed?.viewer?.pinned) {
+    if (pinnedFeedUris.has(uri)) {
       await atprotoClient.unpinFeed(uri, 'feed');
+      setPinnedFeedUris((prev) => {
+        const next = new Set(prev);
+        next.delete(uri);
+        return next;
+      });
     } else {
       await atprotoClient.pinFeed(uri, 'feed');
+      setPinnedFeedUris((prev) => new Set(prev).add(uri));
     }
     setPinningFeedUri(null);
   };
@@ -708,6 +730,7 @@ export default function ProfilePage() {
                         feed={feed}
                         onPin={handlePinFeed}
                         isPinning={pinningFeedUri === feed.uri}
+                        isPinned={pinnedFeedUris.has(feed.uri)}
                       />
                     ))}
                   </div>

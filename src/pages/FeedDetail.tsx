@@ -191,12 +191,20 @@ export default function FeedDetailPage() {
           </div>
         )}
 
+        {isLoadingMore && (
+          <div className="flex justify-center py-6 text-sm text-muted-foreground">Loading more…</div>
+        )}
+
         {cursor && !isLoading && (
           <div className="flex justify-center py-6">
             <Button variant="outline" onClick={() => fetchFeed(false)} disabled={isLoadingMore}>
               {isLoadingMore ? 'Loading...' : 'Load more'}
             </Button>
           </div>
+        )}
+
+        {!cursor && !isLoading && posts.length > 0 && (
+          <div className="flex justify-center py-6 text-xs text-muted-foreground">No more posts.</div>
         )}
 
         {cursor && <div ref={loadMoreRef} className="h-6" />}
