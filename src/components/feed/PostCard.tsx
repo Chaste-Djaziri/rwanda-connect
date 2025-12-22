@@ -63,9 +63,16 @@ const renderTextWithTags = (text: string) => {
   );
 };
 
+const isGifUrl = (value?: string) => {
+  if (!value) return false;
+  return /\.(gif|gifv)(\?|$)/i.test(value);
+};
+
 const renderExternalEmbed = (embed: any) => {
   const external = embed?.external;
   if (!external) return null;
+  const isGif = isGifUrl(external.uri);
+  const isGifVideo = /\.gifv(\?|$)/i.test(external.uri);
   return (
     <a
       href={external.uri}
@@ -73,8 +80,24 @@ const renderExternalEmbed = (embed: any) => {
       rel="noreferrer"
       className="mt-3 block overflow-hidden rounded-xl border border-border hover:bg-muted/20 transition-colors"
     >
-      {external.thumb && (
-        <img src={external.thumb} alt={external.title} className="w-full h-48 object-cover" />
+      {isGif ? (
+        isGifVideo ? (
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-48 object-cover bg-black"
+          >
+            <source src={external.uri.replace(/\.gifv(\?.*)?$/i, '.mp4$1')} />
+          </video>
+        ) : (
+          <img src={external.uri} alt={external.title} className="w-full h-48 object-cover" />
+        )
+      ) : (
+        external.thumb && (
+          <img src={external.thumb} alt={external.title} className="w-full h-48 object-cover" />
+        )
       )}
       <div className="p-3">
         <p className="text-sm font-semibold text-foreground">{external.title}</p>
@@ -95,7 +118,7 @@ const renderImagesEmbed = (embed: any) => {
       {images.map((image: any, index: number) => (
         <img
           key={`${image?.thumb ?? 'image'}-${index}`}
-          src={image.thumb || image.fullsize}
+          src={isGifUrl(image.fullsize) ? image.fullsize : image.thumb || image.fullsize}
           alt={image.alt || 'Post image'}
           className="w-full max-h-96 object-cover"
         />
@@ -107,10 +130,17 @@ const renderImagesEmbed = (embed: any) => {
 const renderVideoEmbed = (embed: any) => {
   const video = embed;
   if (!video?.playlist && !video?.thumb) return null;
+  const isGif = Boolean(video?.isGif);
   return (
     <div className="mt-3 overflow-hidden rounded-xl border border-border">
       {video.playlist ? (
-        <VideoPlayer src={video.playlist} poster={video.thumb} />
+        isGif ? (
+          <video autoPlay loop muted playsInline className="w-full max-h-96 bg-black" poster={video.thumb}>
+            <source src={video.playlist} />
+          </video>
+        ) : (
+          <VideoPlayer src={video.playlist} poster={video.thumb} />
+        )
       ) : (
         <img src={video.thumb} alt="Video thumbnail" className="w-full max-h-96 object-cover" />
       )}
