@@ -231,11 +231,18 @@ export default function FeedPage() {
     <AppLayout>
       {/* Header */}
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
-        <div className="px-6 h-14 flex items-center justify-between">
-          <h1 className="font-semibold text-foreground text-lg">Home</h1>
-          <Button variant="ghost" size="icon" onClick={() => fetchFeed(true)} disabled={isRefreshing}>
-            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </Button>
+        <div className="px-6 h-14 grid grid-cols-3 items-center">
+          <div />
+          <div className="flex justify-center">
+            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-glow">
+              <MessageSquare className="w-4 h-4 text-primary-foreground" />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button variant="ghost" size="icon" onClick={() => fetchFeed(true)} disabled={isRefreshing}>
+              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </div>
         <div className="px-6 border-t border-border/60">
           <div className="flex gap-6">
@@ -250,7 +257,7 @@ export default function FeedPage() {
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {tab === 'home' ? 'Home' : 'Following'}
+                {tab === 'home' ? 'Discover' : 'Following'}
               </button>
             ))}
           </div>
