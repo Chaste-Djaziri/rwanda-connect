@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { MessageSquare, Heart, Repeat2, Bookmark } from 'lucide-react';
 
 export interface FeedPost {
@@ -310,6 +310,7 @@ export function PostCard({
   isSaved: boolean;
   onToggleSave: (post: FeedPost) => void;
 }) {
+  const navigate = useNavigate();
   const timeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -326,9 +327,26 @@ export function PostCard({
   };
 
   const tags = extractTags(post.record.text);
+  const handle = post.author.handle;
+  const postId = post.uri.split('/').pop() ?? '';
+
+  const handleCardClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (target.closest('button') || target.closest('a')) return;
+    if (!handle || !postId) return;
+    navigate(`/profile/${handle}/post/${postId}`);
+  };
 
   return (
-    <article className="p-4 border-b border-border hover:bg-muted/30 transition-colors duration-200">
+    <article
+      className="p-4 border-b border-border hover:bg-muted/30 transition-colors duration-200"
+      onClick={handleCardClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') handleCardClick(event as unknown as React.MouseEvent<HTMLDivElement>);
+      }}
+    >
       <div className="flex gap-3">
         {/* Avatar */}
         <Link to={`/profile`} className="shrink-0">

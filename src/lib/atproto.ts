@@ -149,6 +149,30 @@ class ATProtoClient {
     }
   }
 
+  async getPostThread(uri: string, depth: number = 3, parentHeight: number = 2) {
+    try {
+      const response = await this.agent.app.bsky.feed.getPostThread({
+        uri,
+        depth,
+        parentHeight,
+      });
+      return { success: true, data: response.data.thread };
+    } catch (error: any) {
+      console.error('Get post thread error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async resolveHandle(handle: string) {
+    try {
+      const response = await this.agent.com.atproto.identity.resolveHandle({ handle });
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error('Resolve handle error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Fetch notifications using AT Protocol listNotifications endpoint
   async getNotifications(cursor?: string, limit: number = 30) {
     try {

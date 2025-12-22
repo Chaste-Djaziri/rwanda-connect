@@ -19,6 +19,7 @@ import Feeds from "./pages/Feeds";
 import Lists from "./pages/Lists";
 import Saved from "./pages/Saved";
 import Hashtag from "./pages/Hashtag";
+import PostDetail from "./pages/PostDetail";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/lists" element={<Lists />} />
               <Route path="/saved" element={<Saved />} />
               <Route path="/hashtag/:tag" element={<Hashtag />} />
+              <Route path="/profile/:handle/post/:postId" element={<PostDetail />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
