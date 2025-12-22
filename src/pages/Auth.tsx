@@ -33,6 +33,42 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    const query = identifier.trim();
+    if (!query || query.length < 2) {
+      setSuggestions([]);
+      setIsSuggesting(false);
+      return;
+    }
+
+    let isActive = true;
+    setIsSuggesting(true);
+    const timeout = setTimeout(async () => {
+      try {
+        const result = await atprotoClient.searchActors(query, undefined, 5);
+        if (!isActive) return;
+        if (result.success && result.data) {
+          setSuggestions(
+            result.data.map((actor: any) => ({
+              handle: actor.handle,
+              displayName: actor.displayName,
+              avatar: actor.avatar,
+            }))
+          );
+        } else {
+          setSuggestions([]);
+        }
+      } finally {
+        if (isActive) setIsSuggesting(false);
+      }
+    }, 250);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timeout);
+    };
+  }, [identifier]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
