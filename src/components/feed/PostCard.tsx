@@ -168,6 +168,7 @@ function VideoPlayer({ src, poster }: { src: string; poster?: string }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
 
@@ -210,6 +211,16 @@ function VideoPlayer({ src, poster }: { src: string; poster?: string }) {
     setIsMuted(video.muted);
   };
 
+  const toggleFullscreen = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => undefined);
+    } else {
+      video.requestFullscreen?.().catch(() => undefined);
+    }
+  };
+
   const scrub = (value: number) => {
     const video = videoRef.current;
     if (!video) return;
@@ -224,8 +235,30 @@ function VideoPlayer({ src, poster }: { src: string; poster?: string }) {
     return `${minutes}:${seconds}`;
   };
 
+  const handleMouseEnter = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    setIsHovered(true);
+    video.muted = true;
+    setIsMuted(true);
+    if (video.paused) {
+      video.play().catch(() => undefined);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    setIsHovered(false);
+    video.pause();
+  };
+
   return (
-    <div className="relative bg-black">
+    <div
+      className="relative bg-black"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <video
         ref={videoRef}
         poster={poster}
@@ -234,21 +267,53 @@ function VideoPlayer({ src, poster }: { src: string; poster?: string }) {
       >
         <source src={src} />
       </video>
+      {!isPlaying && (
+        <button
+          type="button"
+          onClick={togglePlay}
+          className="absolute inset-0 flex items-center justify-center"
+          aria-label="Play video"
+        >
+          <div className="h-14 w-14 rounded-full bg-black/60 flex items-center justify-center text-white">
+            <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </button>
+      )}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3">
         <div className="flex items-center gap-3 text-xs text-white">
           <button
             type="button"
             onClick={togglePlay}
             className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 transition-colors"
+            aria-label={isPlaying ? 'Pause' : 'Play'}
           >
-            {isPlaying ? 'Pause' : 'Play'}
+            {isPlaying ? (
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+                <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            )}
           </button>
           <button
             type="button"
             onClick={toggleMute}
             className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 transition-colors"
+            aria-label={isMuted ? 'Unmute' : 'Mute'}
           >
-            {isMuted ? 'Unmute' : 'Mute'}
+            {isMuted ? (
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12zM5 9v6h4l5 5V4l-5 5H5z" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+                <path d="M5 9v6h4l5 5V4l-5 5H5zm11 3a4 4 0 0 0-2-3.46v6.92A4 4 0 0 0 16 12zm-2-7.74v2.06A6 6 0 0 1 20 12a6 6 0 0 1-6 5.68v2.06A8 8 0 0 0 22 12a8 8 0 0 0-8-7.74z" />
+              </svg>
+            )}
           </button>
           <div className="flex-1 flex items-center gap-2">
             <input
@@ -263,8 +328,23 @@ function VideoPlayer({ src, poster }: { src: string; poster?: string }) {
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
           </div>
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 transition-colors"
+            aria-label="Fullscreen"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+              <path d="M7 14H5v5h5v-2H7v-3zm0-4h2V7h3V5H5v5zm10 7h-3v2h5v-5h-2v3zm-3-9h3v3h2V5h-5v2z" />
+            </svg>
+          </button>
         </div>
       </div>
+      {isHovered && (
+        <div className="absolute top-2 right-2 text-[10px] px-2 py-1 rounded-full bg-black/60 text-white">
+          Hover preview (muted)
+        </div>
+      )}
     </div>
   );
 }
