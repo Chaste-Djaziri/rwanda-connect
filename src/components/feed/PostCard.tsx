@@ -162,6 +162,7 @@ function ImageGrid({ images }: { images: any[] }) {
           const isLastWithOverlay = imageCount > 4 && index === 3;
           const isTall = imageCount === 3 && index === 0;
           const isSingle = imageCount === 1;
+          const isTwo = imageCount === 2;
           const isThree = imageCount === 3;
           return (
             <button
@@ -178,7 +179,9 @@ function ImageGrid({ images }: { images: any[] }) {
               <img
                 src={isGifUrl(image.fullsize) ? image.fullsize : image.thumb || image.fullsize}
                 alt={image.alt || 'Post image'}
-                className={`${isSingle ? 'w-auto max-w-full' : 'w-full'} object-contain bg-black ${
+                className={`${isSingle ? 'w-auto max-w-full' : 'w-full'} ${
+                  isTwo ? 'object-cover' : 'object-contain'
+                } bg-black ${
                   isSingle
                     ? 'h-auto'
                     : isThree
