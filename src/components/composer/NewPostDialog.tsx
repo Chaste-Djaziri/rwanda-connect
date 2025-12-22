@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -331,6 +338,9 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
               Post interaction settings
             </Button>
           </div>
+          <DialogDescription className="sr-only">
+            Compose a new post with media, GIFs, emojis, and language selection.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="px-6 pb-6 space-y-4">
@@ -517,6 +527,9 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
               <DialogHeader>
                 <DialogTitle>Post interaction settings</DialogTitle>
               </DialogHeader>
+              <DialogDescription className="sr-only">
+                Control who can reply and whether quotes are allowed for this post.
+              </DialogDescription>
 
               <div className="space-y-4">
                 <p className="text-xs text-muted-foreground">These are your default settings.</p>
@@ -615,6 +628,9 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
           <DialogHeader>
             <DialogTitle>Discard draft?</DialogTitle>
           </DialogHeader>
+          <DialogDescription className="sr-only">
+            Confirm whether to discard your draft post.
+          </DialogDescription>
           <p className="text-sm text-muted-foreground">
             You have an unsent post. If you close now, your draft will be lost.
           </p>

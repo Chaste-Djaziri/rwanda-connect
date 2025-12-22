@@ -18,7 +18,7 @@ import {
   Pin,
   SlidersHorizontal,
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -816,6 +816,9 @@ export function PostCard({
               <DialogHeader>
                 <DialogTitle>Edit interaction settings</DialogTitle>
               </DialogHeader>
+              <DialogDescription className="sr-only">
+                Update reply and quote permissions for this post.
+              </DialogDescription>
 
               <div className="space-y-4">
                 <div className="space-y-2">
