@@ -28,6 +28,25 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<
     'posts' | 'replies' | 'media' | 'videos' | 'likes' | 'feeds' | 'starterPacks' | 'lists'
   >('posts');
+  const isOwnProfile = profile?.handle && user?.handle && profile.handle === user.handle;
+
+  const availableTabs = [
+    { key: 'posts', label: 'Posts', show: (profile?.postsCount ?? 0) > 0 || isOwnProfile },
+    { key: 'replies', label: 'Replies', show: isOwnProfile },
+    { key: 'media', label: 'Media', show: isOwnProfile },
+    { key: 'videos', label: 'Videos', show: isOwnProfile },
+    { key: 'likes', label: 'Likes', show: isOwnProfile },
+    { key: 'feeds', label: 'Feeds', show: isOwnProfile },
+    { key: 'starterPacks', label: 'Starter packs', show: isOwnProfile },
+    { key: 'lists', label: 'Lists', show: isOwnProfile },
+  ].filter((tab) => tab.show);
+
+  useEffect(() => {
+    if (availableTabs.length === 0) return;
+    if (!availableTabs.find((tab) => tab.key === activeTab)) {
+      setActiveTab(availableTabs[0].key as typeof activeTab);
+    }
+  }, [availableTabs.length, profile?.handle]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -177,17 +196,8 @@ export default function ProfilePage() {
 
           {/* Tabs */}
           <div className="mt-6 border-b border-border/60">
-            <div className="grid grid-cols-4 gap-2 text-xs font-semibold text-muted-foreground sm:text-sm sm:grid-cols-4 md:grid-cols-8">
-              {[
-                { key: 'posts', label: 'Posts' },
-                { key: 'replies', label: 'Replies' },
-                { key: 'media', label: 'Media' },
-                { key: 'videos', label: 'Videos' },
-                { key: 'likes', label: 'Likes' },
-                { key: 'feeds', label: 'Feeds' },
-                { key: 'starterPacks', label: 'Starter packs' },
-                { key: 'lists', label: 'Lists' },
-              ].map((tab) => (
+            <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-muted-foreground sm:text-sm sm:grid-cols-4 md:grid-cols-8">
+              {availableTabs.map((tab) => (
                 <button
                   key={tab.key}
                   type="button"
@@ -205,7 +215,8 @@ export default function ProfilePage() {
           </div>
 
           <div className="py-8 text-center text-sm text-muted-foreground">
-            {activeTab === 'posts' && 'Posts will appear here.'}
+            {availableTabs.length === 0 && 'No public content available.'}
+            {availableTabs.length > 0 && activeTab === 'posts' && 'Posts will appear here.'}
             {activeTab === 'replies' && 'Replies will appear here.'}
             {activeTab === 'media' && 'Media will appear here.'}
             {activeTab === 'videos' && 'Videos will appear here.'}
