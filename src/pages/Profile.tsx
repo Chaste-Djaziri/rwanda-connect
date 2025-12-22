@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,20 +21,22 @@ interface ProfileData {
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { handle } = useParams<{ handle: string }>();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!isAuthenticated || authLoading || !user?.did) {
+      const targetHandle = handle?.replace(/^@/, '') || user?.handle;
+      if (!isAuthenticated || authLoading || !targetHandle) {
         setIsLoading(false);
         return;
       }
       setIsLoading(true);
       setError(null);
       try {
-        const result = await atprotoClient.getProfile(user.did);
+        const result = await atprotoClient.getProfile(targetHandle);
         if (result.success && result.data) {
           setProfile({
             did: result.data.did,
@@ -58,7 +61,7 @@ export default function ProfilePage() {
     };
 
     fetchProfile();
-  }, [authLoading, isAuthenticated, user?.did]);
+  }, [authLoading, isAuthenticated, user?.handle, handle]);
 
   return (
     <AppLayout>

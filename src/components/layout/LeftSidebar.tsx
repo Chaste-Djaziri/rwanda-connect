@@ -47,7 +47,7 @@ export function LeftSidebar() {
       style={{ left: leftOffset }}
     >
       <div className="h-20 flex items-center justify-center">
-        <Link to="/profile" className="group flex items-center justify-center">
+        <Link to={user?.handle ? `/profile/${user.handle}` : '/profile'} className="group flex items-center justify-center">
           <div className="w-12 h-12 rounded-full overflow-hidden bg-muted ring-2 ring-border group-hover:ring-primary/60 transition-colors">
             {user?.avatar ? (
               <img
@@ -68,7 +68,9 @@ export function LeftSidebar() {
       <nav className="flex-1 py-6">
         <ul className="space-y-2">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive =
+              location.pathname === item.path ||
+              (item.path === '/profile' && location.pathname.startsWith('/profile/'));
             return (
               <li key={item.path}>
                 <Link

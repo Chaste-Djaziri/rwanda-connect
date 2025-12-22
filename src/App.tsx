@@ -20,6 +20,7 @@ import Lists from "./pages/Lists";
 import Saved from "./pages/Saved";
 import Hashtag from "./pages/Hashtag";
 import PostDetail from "./pages/PostDetail";
+import ProfileRedirect from "./pages/ProfileRedirect";
 
 const queryClient = new QueryClient();
 
@@ -35,7 +36,8 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/feed" element={<Feed />} />
-              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile" element={<ProfileRedirect />} />
+              <Route path="/profile/:handle" element={<Profile />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/settings" element={<Settings />} />

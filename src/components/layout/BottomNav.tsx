@@ -21,11 +21,15 @@ export function BottomNav() {
       <div className="mx-auto max-w-md px-4">
         <div className="flex items-center justify-between py-2">
           {mobilePrimaryNav.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive =
+              location.pathname === item.path ||
+              (item.path === '/profile' && location.pathname.startsWith('/profile/'));
+            const targetPath =
+              item.path === '/profile' && user?.handle ? `/profile/${user.handle}` : item.path;
             return (
               <Link
                 key={item.path}
-                to={item.path}
+                to={targetPath}
                 className={cn(
                   'flex flex-col items-center justify-center gap-1 px-2 py-1 text-xs font-medium',
                   isActive ? 'text-foreground' : 'text-muted-foreground'
@@ -73,11 +77,15 @@ export function BottomNav() {
 
               <nav className="mt-6 space-y-1">
                 {navItems.map((item) => {
-                  const isActive = location.pathname === item.path;
+                  const isActive =
+                    location.pathname === item.path ||
+                    (item.path === '/profile' && location.pathname.startsWith('/profile/'));
+                  const targetPath =
+                    item.path === '/profile' && user?.handle ? `/profile/${user.handle}` : item.path;
                   return (
                     <Link
                       key={item.path}
-                      to={item.path}
+                      to={targetPath}
                       className={cn(
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm',
                         isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'

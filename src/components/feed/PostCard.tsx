@@ -382,7 +382,7 @@ export function PostCard({
     >
       <div className="flex gap-3">
         {/* Avatar */}
-        <Link to={`/profile`} className="shrink-0">
+        <Link to={`/profile/${post.author.handle}`} className="shrink-0">
           <div className="w-11 h-11 rounded-full overflow-hidden bg-muted">
             {post.author.avatar ? (
               <img
