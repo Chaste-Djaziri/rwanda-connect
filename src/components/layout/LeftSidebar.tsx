@@ -2,15 +2,21 @@ import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { chatApi } from '@/lib/chat';
-import { PenSquare } from 'lucide-react';
+import { PenSquare, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { navItems } from './navItems';
 import { NewPostDialog } from '@/components/composer/NewPostDialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export function LeftSidebar() {
   const leftOffset = 'calc(50% - 17.5vw - 18rem - 3rem)';
   const location = useLocation();
-  const { user, hasChatSession, isChatSessionLoading, isAuthenticated } = useAuth();
+  const { user, hasChatSession, isChatSessionLoading, isAuthenticated, logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -54,21 +60,49 @@ export function LeftSidebar() {
       style={{ left: leftOffset }}
     >
       <div className="h-20 flex items-center justify-center">
-        <Link to={user?.handle ? `/profile/${user.handle}` : '/profile'} className="group flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full overflow-hidden bg-muted ring-2 ring-border group-hover:ring-primary/60 transition-colors">
-            {user?.avatar ? (
-              <img
-                src={user.avatar}
-                alt={user.displayName || user.handle}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-sm font-semibold text-muted-foreground">
-                {user?.handle?.[0]?.toUpperCase() ?? 'I'}
-              </div>
-            )}
+        <div className="group relative flex items-center justify-center">
+          <Link to={user?.handle ? `/profile/${user.handle}` : '/profile'} className="flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-muted ring-2 ring-border transition-transform duration-200 group-hover:scale-90 group-hover:ring-primary/60">
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.displayName || user.handle}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-sm font-semibold text-muted-foreground">
+                  {user?.handle?.[0]?.toUpperCase() ?? 'I'}
+                </div>
+              )}
+            </div>
+          </Link>
+          <div className="pointer-events-none absolute left-full ml-3 hidden min-w-[200px] rounded-xl border border-border bg-background/95 px-3 py-2 text-sm text-foreground shadow-lg opacity-0 transition-all duration-200 group-hover:pointer-events-auto group-hover:flex group-hover:items-center group-hover:gap-2 group-hover:opacity-100">
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold truncate">{user?.displayName || user?.handle || 'Account'}</p>
+              {user?.handle && <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>}
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="pointer-events-auto h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted"
+                  aria-label="Account options"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
+                <DropdownMenuItem asChild>
+                  <Link to={user?.handle ? `/profile/${user.handle}` : '/profile'}>Go to profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.alert('Add account coming soon')}>
+                  Add another account
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => logout()}>Sign out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </Link>
+        </div>
       </div>
 
       {/* Navigation */}
