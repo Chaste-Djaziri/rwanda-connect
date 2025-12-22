@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { chatApi } from '@/lib/chat';
-import { PenSquare, MoreHorizontal } from 'lucide-react';
+import { PenSquare, MoreHorizontal, User, UserPlus, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { navItems } from './navItems';
 import { NewPostDialog } from '@/components/composer/NewPostDialog';
@@ -102,12 +102,17 @@ export function LeftSidebar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" onClick={(event) => event.stopPropagation()}>
             <DropdownMenuItem onClick={() => navigate(user?.handle ? `/profile/${user.handle}` : '/profile')}>
+              <User className="mr-2 h-4 w-4" />
               Go to profile
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => window.alert('Add account coming soon')}>
+              <UserPlus className="mr-2 h-4 w-4" />
               Add another account
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => logout()}>Sign out</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => logout()}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
