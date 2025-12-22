@@ -85,7 +85,7 @@ export default function AuthPage() {
       const avatars = await Promise.all(
         sessions.map(async (session) => {
           try {
-            const profile = await atprotoClient.getProfile(session.did);
+            const profile = await atprotoClient.getProfilePublic(session.did);
             return { did: session.did, avatar: profile.success ? profile.data?.avatar : undefined };
           } catch {
             return { did: session.did, avatar: undefined };

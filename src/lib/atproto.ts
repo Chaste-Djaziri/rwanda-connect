@@ -145,6 +145,22 @@ class ATProtoClient {
     }
   }
 
+  async getProfilePublic(actor: string) {
+    try {
+      const response = await fetch(
+        `${PUBLIC_API}/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(actor)}`
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error: any) {
+      console.error('Get profile public error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   async createPost({
     text,
     langs,
