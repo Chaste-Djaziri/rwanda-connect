@@ -170,7 +170,7 @@ function ImageGrid({ images }: { images: any[] }) {
       : imageCount === 2
         ? 'grid grid-cols-2 aspect-[4/3]'
         : imageCount === 3
-          ? 'grid grid-cols-[0.85fr_1.15fr] grid-rows-2 aspect-[4/3]'
+          ? 'grid grid-cols-[1.15fr_0.85fr] grid-rows-2 aspect-[4/3]'
           : 'grid grid-cols-2 grid-rows-2 aspect-[4/3]';
 
   return (
@@ -194,7 +194,7 @@ function ImageGrid({ images }: { images: any[] }) {
                 openLightbox(index);
               }}
               className={`relative group overflow-hidden bg-black ${
-                isTall ? 'row-span-1 self-center' : ''
+                isTall ? 'row-span-2 flex items-center justify-center p-2' : 'flex items-center justify-center'
               }`}
             >
               <img
