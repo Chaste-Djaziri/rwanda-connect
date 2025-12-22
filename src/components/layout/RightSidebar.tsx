@@ -15,6 +15,7 @@ const consolidatedMessage = (message?: { text?: string; isDeleted?: boolean }) =
 };
 
 export function RightSidebar() {
+  const rightOffset = 'calc(50% - 12.5vw - 20rem - 3rem)';
   const location = useLocation();
   const { hasChatSession, isChatSessionLoading, isAuthenticated, user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
@@ -83,7 +84,10 @@ export function RightSidebar() {
   };
 
   return (
-    <aside className="fixed right-6 top-6 bottom-6 w-80 bg-transparent hidden xl:flex flex-col z-40 px-6 xl:right-24 2xl:right-32">
+    <aside
+      className="fixed top-6 bottom-6 w-80 bg-transparent hidden xl:flex flex-col z-40 px-6"
+      style={{ right: rightOffset }}
+    >
       {/* Search */}
       <div className="pt-6">
         <div className="relative">

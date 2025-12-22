@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { navItems } from './navItems';
 
 export function LeftSidebar() {
+  const leftOffset = 'calc(50% - 12.5vw - 18rem - 3rem)';
   const location = useLocation();
   const { user, hasChatSession, isChatSessionLoading, isAuthenticated } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -41,7 +42,10 @@ export function LeftSidebar() {
   }, [isAuthenticated, isChatSessionLoading, hasChatSession, location.pathname]);
 
   return (
-    <aside className="fixed left-6 top-6 bottom-6 w-20 bg-transparent hidden lg:flex flex-col z-40 px-4 xl:left-24 2xl:left-32 xl:w-72">
+    <aside
+      className="fixed top-6 bottom-6 w-20 bg-transparent hidden lg:flex flex-col z-40 px-4 xl:w-72"
+      style={{ left: leftOffset }}
+    >
       <div className="h-20 flex items-center justify-center">
         <Link to="/profile" className="group flex items-center justify-center">
           <div className="w-12 h-12 rounded-full overflow-hidden bg-muted ring-2 ring-border group-hover:ring-primary/60 transition-colors">
