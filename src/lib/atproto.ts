@@ -133,6 +133,7 @@ class ATProtoClient {
   async searchPostsByTag(tag: string, cursor?: string, limit: number = 30) {
     try {
       const response = await this.agent.app.bsky.feed.searchPosts({
+        q: `#${tag}`,
         tag: [tag],
         cursor,
         limit,
