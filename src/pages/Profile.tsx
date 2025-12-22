@@ -628,13 +628,13 @@ export default function ProfilePage() {
                       </>
                     )}
 
-                    {!tabData[activeTab].isLoading && tabData[activeTab].items.length === 0 && (
+                    {tabData[activeTab].items.length === 0 && !tabData[activeTab].isLoading && (
                       <div className="text-center text-sm text-muted-foreground py-6">
                         No posts to show yet.
                       </div>
                     )}
 
-                    {!tabData[activeTab].isLoading && tabData[activeTab].items.length > 0 && (
+                    {tabData[activeTab].items.length > 0 && (
                       <div>
                         {(tabData[activeTab].items as FeedPost[]).map((post) => (
                           <PostCard
@@ -658,15 +658,14 @@ export default function ProfilePage() {
                         ))}
                       </>
                     )}
-                    {!tabData.feeds.isLoading && tabData.feeds.items.length === 0 && (
+                    {tabData.feeds.items.length === 0 && !tabData.feeds.isLoading && (
                       <div className="text-center text-sm text-muted-foreground py-6">
                         No feeds available.
                       </div>
                     )}
-                    {!tabData.feeds.isLoading &&
-                      tabData.feeds.items.map((feed: any) => (
-                        <FeedCard key={feed.uri} feed={feed} />
-                      ))}
+                    {tabData.feeds.items.map((feed: any) => (
+                      <FeedCard key={feed.uri} feed={feed} />
+                    ))}
                   </div>
                 )}
 
@@ -679,15 +678,14 @@ export default function ProfilePage() {
                         ))}
                       </>
                     )}
-                    {!tabData.starterPacks.isLoading && tabData.starterPacks.items.length === 0 && (
+                    {tabData.starterPacks.items.length === 0 && !tabData.starterPacks.isLoading && (
                       <div className="text-center text-sm text-muted-foreground py-6">
                         No starter packs available.
                       </div>
                     )}
-                    {!tabData.starterPacks.isLoading &&
-                      tabData.starterPacks.items.map((pack: any) => (
-                        <StarterPackCard key={pack.uri} pack={pack} />
-                      ))}
+                    {tabData.starterPacks.items.map((pack: any) => (
+                      <StarterPackCard key={pack.uri} pack={pack} />
+                    ))}
                   </div>
                 )}
 
@@ -700,15 +698,14 @@ export default function ProfilePage() {
                         ))}
                       </>
                     )}
-                    {!tabData.lists.isLoading && tabData.lists.items.length === 0 && (
+                    {tabData.lists.items.length === 0 && !tabData.lists.isLoading && (
                       <div className="text-center text-sm text-muted-foreground py-6">
                         No lists available.
                       </div>
                     )}
-                    {!tabData.lists.isLoading &&
-                      tabData.lists.items.map((list: any) => (
-                        <ListCard key={list.uri} list={list} />
-                      ))}
+                    {tabData.lists.items.map((list: any) => (
+                      <ListCard key={list.uri} list={list} />
+                    ))}
                   </div>
                 )}
 
