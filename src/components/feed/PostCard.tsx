@@ -201,7 +201,7 @@ function ImageGrid({ images }: { images: any[] }) {
                 src={isGifUrl(image.fullsize) ? image.fullsize : image.thumb || image.fullsize}
                 alt={image.alt || 'Post image'}
                 className={`${isSingle ? 'w-auto max-w-full' : 'w-full'} ${
-                  isTwo ? 'object-fill' : 'object-contain'
+                  isSingle ? 'object-contain' : 'object-cover'
                 } bg-black ${
                   isSingle
                     ? 'h-auto'
