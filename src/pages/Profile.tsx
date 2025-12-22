@@ -25,6 +25,9 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<
+    'posts' | 'replies' | 'media' | 'videos' | 'likes' | 'feeds' | 'starterPacks' | 'lists'
+  >('posts');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -129,6 +132,29 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {/* Stats */}
+          {isLoading ? (
+            <div className="flex gap-6 mb-4">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+          ) : (
+            <div className="flex gap-6 mb-4">
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-foreground">
+                  {profile?.followsCount.toLocaleString()}
+                </span>
+                <span className="text-muted-foreground">Following</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-foreground">
+                  {profile?.followersCount.toLocaleString()}
+                </span>
+                <span className="text-muted-foreground">Followers</span>
+              </div>
+            </div>
+          )}
+
           {/* Bio */}
           {isLoading ? (
             <div className="space-y-2 mb-4">
@@ -149,28 +175,45 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Stats */}
-          {isLoading ? (
-            <div className="flex gap-6">
-              <Skeleton className="h-5 w-24" />
-              <Skeleton className="h-5 w-24" />
+          {/* Tabs */}
+          <div className="mt-6 border-b border-border/60">
+            <div className="grid grid-cols-4 gap-2 text-xs font-semibold text-muted-foreground sm:text-sm sm:grid-cols-4 md:grid-cols-8">
+              {[
+                { key: 'posts', label: 'Posts' },
+                { key: 'replies', label: 'Replies' },
+                { key: 'media', label: 'Media' },
+                { key: 'videos', label: 'Videos' },
+                { key: 'likes', label: 'Likes' },
+                { key: 'feeds', label: 'Feeds' },
+                { key: 'starterPacks', label: 'Starter packs' },
+                { key: 'lists', label: 'Lists' },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveTab(tab.key as typeof activeTab)}
+                  className={`py-3 border-b-2 transition-colors ${
+                    activeTab === tab.key
+                      ? 'border-primary text-foreground'
+                      : 'border-transparent hover:text-foreground'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
-          ) : (
-            <div className="flex gap-6">
-              <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">
-                  {profile?.followsCount.toLocaleString()}
-                </span>
-                <span className="text-muted-foreground">Following</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">
-                  {profile?.followersCount.toLocaleString()}
-                </span>
-                <span className="text-muted-foreground">Followers</span>
-              </div>
-            </div>
-          )}
+          </div>
+
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            {activeTab === 'posts' && 'Posts will appear here.'}
+            {activeTab === 'replies' && 'Replies will appear here.'}
+            {activeTab === 'media' && 'Media will appear here.'}
+            {activeTab === 'videos' && 'Videos will appear here.'}
+            {activeTab === 'likes' && 'Likes will appear here.'}
+            {activeTab === 'feeds' && 'Feeds will appear here.'}
+            {activeTab === 'starterPacks' && 'Starter packs will appear here.'}
+            {activeTab === 'lists' && 'Lists will appear here.'}
+          </div>
 
           {error && (
             <div className="mt-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
