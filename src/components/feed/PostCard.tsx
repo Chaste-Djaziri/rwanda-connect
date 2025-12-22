@@ -82,12 +82,12 @@ const renderExternalEmbed = (embed: any) => {
             loop
             muted
             playsInline
-            className="w-full max-h-80 object-contain bg-black"
+            className="w-full h-auto object-contain bg-black"
           >
             <source src={external.uri.replace(/\.gifv(\?.*)?$/i, '.mp4$1')} />
           </video>
         ) : (
-          <img src={external.uri} alt="" className="w-full max-h-80 object-contain bg-black" />
+          <img src={external.uri} alt="" className="w-full h-auto object-contain bg-black" />
         )}
       </div>
     );
@@ -123,7 +123,7 @@ const renderImagesEmbed = (embed: any) => {
           key={`${image?.thumb ?? 'image'}-${index}`}
           src={isGifUrl(image.fullsize) ? image.fullsize : image.thumb || image.fullsize}
           alt={image.alt || 'Post image'}
-          className="w-full max-h-80 object-contain bg-black"
+          className="w-full h-auto object-contain bg-black"
         />
       ))}
     </div>
@@ -138,7 +138,7 @@ const renderVideoEmbed = (embed: any) => {
     <div className="mt-3 overflow-hidden rounded-xl border border-border">
       {video.playlist ? (
         isGif ? (
-          <video autoPlay loop muted playsInline className="w-full max-h-80 object-contain bg-black" poster={video.thumb}>
+          <video autoPlay loop muted playsInline className="w-full h-auto object-contain bg-black" poster={video.thumb}>
             <source src={video.playlist} />
           </video>
         ) : (
