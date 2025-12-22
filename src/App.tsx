@@ -13,6 +13,11 @@ import Notifications from "./pages/Notifications";
 import Explore from "./pages/Explore";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Chat from "./pages/Chat";
+import ChatThread from "./pages/ChatThread";
+import Feeds from "./pages/Feeds";
+import Lists from "./pages/Lists";
+import Saved from "./pages/Saved";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +37,11 @@ const App = () => (
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/chat" element={<Chat />} />
+              <Route path="/chat/:convoId" element={<ChatThread />} />
+              <Route path="/feeds" element={<Feeds />} />
+              <Route path="/lists" element={<Lists />} />
+              <Route path="/saved" element={<Saved />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

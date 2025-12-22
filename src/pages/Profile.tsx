@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Calendar } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProfileData {
   did: string;
@@ -18,15 +19,21 @@ interface ProfileData {
 }
 
 export default function ProfilePage() {
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
+      if (!isAuthenticated || authLoading || !user?.did) {
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
+      setError(null);
       try {
-        const result = await atprotoClient.getProfile();
+        const result = await atprotoClient.getProfile(user.did);
         if (result.success && result.data) {
           setProfile({
             did: result.data.did,
@@ -51,7 +58,7 @@ export default function ProfilePage() {
     };
 
     fetchProfile();
-  }, []);
+  }, [authLoading, isAuthenticated, user?.did]);
 
   return (
     <AppLayout>

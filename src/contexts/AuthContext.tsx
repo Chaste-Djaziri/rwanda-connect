@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { atprotoClient } from '@/lib/atproto';
+import { chatApi } from '@/lib/chat';
 
 interface User {
   did: string;
@@ -12,9 +13,12 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  hasChatSession: boolean;
+  isChatSessionLoading: boolean;
   login: (identifier: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  initChatSession: (identifier: string, password: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,6 +26,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasChatSession, setHasChatSession] = useState(false);
+  const [isChatSessionLoading, setIsChatSessionLoading] = useState(false);
 
   const refreshUser = useCallback(async () => {
     if (!atprotoClient.isAuthenticated()) {
@@ -51,6 +57,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const resumed = await atprotoClient.resumeSession();
         if (resumed) {
           await refreshUser();
+          setIsChatSessionLoading(true);
+          try {
+            await chatApi.checkSession();
+            setHasChatSession(true);
+          } catch {
+            setHasChatSession(false);
+          } finally {
+            setIsChatSessionLoading(false);
+          }
         }
       } catch (error) {
         console.error('Auth init error:', error);
@@ -62,10 +77,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initAuth();
   }, [refreshUser]);
 
+  const initChatSession = useCallback(async (identifier: string, password: string) => {
+    setIsChatSessionLoading(true);
+    try {
+      await chatApi.createSession(identifier, password);
+      setHasChatSession(true);
+      return true;
+    } catch (error) {
+      console.error('Chat session error:', error);
+      setHasChatSession(false);
+      return false;
+    } finally {
+      setIsChatSessionLoading(false);
+    }
+  }, []);
+
   const login = async (identifier: string, password: string) => {
     const result = await atprotoClient.login(identifier, password);
     if (result.success) {
       await refreshUser();
+      await initChatSession(identifier, password);
     }
     return result;
   };
@@ -73,6 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     await atprotoClient.logout();
     setUser(null);
+    setHasChatSession(false);
   };
 
   return (
@@ -81,9 +113,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isLoading,
         isAuthenticated: !!user,
+        hasChatSession,
+        isChatSessionLoading,
         login,
         logout,
         refreshUser,
+        initChatSession,
       }}
     >
       {children}

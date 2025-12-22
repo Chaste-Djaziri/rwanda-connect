@@ -161,6 +161,20 @@ class ATProtoClient {
     }
   }
 
+  // Get trending topics for right sidebar
+  async getTrendingTopics(limit: number = 10) {
+    try {
+      const response = await this.agent.app.bsky.unspecced.getTrendingTopics({ limit });
+      return {
+        success: true,
+        data: response.data.topics,
+      };
+    } catch (error: any) {
+      console.error('Get trending topics error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Search actors (users) for explore
   async searchActors(query: string, cursor?: string, limit: number = 25) {
     try {

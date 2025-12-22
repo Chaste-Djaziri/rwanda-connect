@@ -4,7 +4,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Home, MessageSquare, Heart, Repeat2 } from 'lucide-react';
+import { RefreshCw, MessageSquare, Heart, Repeat2, Bookmark } from 'lucide-react';
+import { getSavedPosts, removeSavedPost, savePost, SavedPost } from '@/lib/savedPosts';
 
 interface FeedPost {
   uri: string;
@@ -24,12 +25,20 @@ interface FeedPost {
   likeCount: number;
 }
 
-function PostCard({ post }: { post: FeedPost }) {
+function PostCard({
+  post,
+  isSaved,
+  onToggleSave,
+}: {
+  post: FeedPost;
+  isSaved: boolean;
+  onToggleSave: (post: FeedPost) => void;
+}) {
   const timeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
+
     if (seconds < 60) return `${seconds}s`;
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m`;
@@ -44,14 +53,11 @@ function PostCard({ post }: { post: FeedPost }) {
     <article className="p-4 border-b border-border hover:bg-muted/30 transition-colors duration-200">
       <div className="flex gap-3">
         {/* Avatar */}
-        <Link 
-          to={`/profile`}
-          className="shrink-0"
-        >
+        <Link to={`/profile`} className="shrink-0">
           <div className="w-11 h-11 rounded-full overflow-hidden bg-muted">
             {post.author.avatar ? (
-              <img 
-                src={post.author.avatar} 
+              <img
+                src={post.author.avatar}
                 alt={post.author.displayName || post.author.handle}
                 className="w-full h-full object-cover"
               />
@@ -70,9 +76,7 @@ function PostCard({ post }: { post: FeedPost }) {
             <span className="font-semibold text-foreground truncate">
               {post.author.displayName || post.author.handle}
             </span>
-            <span className="text-muted-foreground text-sm truncate">
-              @{post.author.handle}
-            </span>
+            <span className="text-muted-foreground text-sm truncate">@{post.author.handle}</span>
             <span className="text-muted-foreground text-sm">·</span>
             <time className="text-muted-foreground text-sm shrink-0">
               {timeAgo(post.record.createdAt)}
@@ -97,6 +101,18 @@ function PostCard({ post }: { post: FeedPost }) {
             <button className="flex items-center gap-2 text-muted-foreground hover:text-destructive transition-colors p-2 rounded-full hover:bg-destructive/10">
               <Heart className="w-4 h-4" />
               <span className="text-sm">{post.likeCount || ''}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onToggleSave(post)}
+              className={`flex items-center gap-2 p-2 rounded-full transition-colors ${
+                isSaved
+                  ? 'text-primary bg-primary/10'
+                  : 'text-muted-foreground hover:text-primary hover:bg-primary/10'
+              }`}
+            >
+              <Bookmark className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} />
+              <span className="text-sm">{isSaved ? 'Saved' : ''}</span>
             </button>
           </div>
         </div>
@@ -130,75 +146,114 @@ function PostSkeleton() {
 
 export default function FeedPage() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<'home' | 'following'>('home');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string | undefined>();
 
-  const fetchFeed = useCallback(async (refresh = false) => {
-    if (refresh) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
-    setError(null);
+  useEffect(() => {
+    const saved = getSavedPosts().map((post) => post.uri);
+    setSavedUris(new Set(saved));
+  }, []);
 
-    try {
-      const result = await atprotoClient.getTimeline(refresh ? undefined : cursor);
-      if (result.success && result.data) {
-        const feedPosts: FeedPost[] = result.data.map((item: any) => ({
-          uri: item.post.uri,
-          cid: item.post.cid,
-          author: {
-            did: item.post.author.did,
-            handle: item.post.author.handle,
-            displayName: item.post.author.displayName,
-            avatar: item.post.author.avatar,
-          },
-          record: {
-            text: item.post.record.text,
-            createdAt: item.post.record.createdAt,
-          },
-          replyCount: item.post.replyCount ?? 0,
-          repostCount: item.post.repostCount ?? 0,
-          likeCount: item.post.likeCount ?? 0,
-        }));
-        
-        if (refresh) {
-          setPosts(feedPosts);
-        } else {
-          setPosts((prev) => [...prev, ...feedPosts]);
-        }
-        setCursor(result.cursor);
+  const toggleSave = useCallback((post: FeedPost) => {
+    setSavedUris((prev) => {
+      const next = new Set(prev);
+      if (next.has(post.uri)) {
+        next.delete(post.uri);
+        removeSavedPost(post.uri);
       } else {
-        setError('Failed to load feed');
+        savePost(post as SavedPost);
+        next.add(post.uri);
       }
-    } catch (err) {
-      setError('Failed to fetch timeline');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [cursor]);
+      return next;
+    });
+  }, []);
+
+  const fetchFeed = useCallback(
+    async (refresh = false) => {
+      if (refresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+      setError(null);
+
+      try {
+        const result = await atprotoClient.getTimeline(refresh ? undefined : cursor);
+        if (result.success && result.data) {
+          const feedPosts: FeedPost[] = result.data.map((item: any) => ({
+            uri: item.post.uri,
+            cid: item.post.cid,
+            author: {
+              did: item.post.author.did,
+              handle: item.post.author.handle,
+              displayName: item.post.author.displayName,
+              avatar: item.post.author.avatar,
+            },
+            record: {
+              text: item.post.record.text,
+              createdAt: item.post.record.createdAt,
+            },
+            replyCount: item.post.replyCount ?? 0,
+            repostCount: item.post.repostCount ?? 0,
+            likeCount: item.post.likeCount ?? 0,
+          }));
+
+          if (refresh) {
+            setPosts(feedPosts);
+          } else {
+            setPosts((prev) => [...prev, ...feedPosts]);
+          }
+          setCursor(result.cursor);
+        } else {
+          setError('Failed to load feed');
+        }
+      } catch (err) {
+        setError('Failed to fetch timeline');
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [cursor]
+  );
 
   useEffect(() => {
+    setCursor(undefined);
+    setPosts([]);
     fetchFeed(true);
-  }, []);
+  }, [activeTab]);
 
   return (
     <AppLayout>
       {/* Header */}
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
-        <div className="px-4 h-14 flex items-center justify-between">
+        <div className="px-6 h-14 flex items-center justify-between">
           <h1 className="font-semibold text-foreground text-lg">Home</h1>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => fetchFeed(true)}
-            disabled={isRefreshing}
-          >
+          <Button variant="ghost" size="icon" onClick={() => fetchFeed(true)} disabled={isRefreshing}>
             <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
+        </div>
+        <div className="px-6 border-t border-border/60">
+          <div className="flex gap-6">
+            {(['home', 'following'] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`py-3 text-sm font-semibold border-b-2 transition-colors ${
+                  activeTab === tab
+                    ? 'border-primary text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {tab === 'home' ? 'Home' : 'Following'}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
@@ -207,50 +262,34 @@ export default function FeedPage() {
         {error && (
           <div className="p-4 m-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
             {error}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => fetchFeed(true)}
-              className="ml-2"
-            >
+            <Button variant="ghost" size="sm" onClick={() => fetchFeed(true)} className="ml-2">
               Retry
             </Button>
           </div>
         )}
 
-        {isLoading && posts.length === 0 ? (
-          <div>
-            {[...Array(5)].map((_, i) => (
-              <PostSkeleton key={i} />
-            ))}
-          </div>
+        {isLoading ? (
+          [...Array(4)].map((_, i) => <PostSkeleton key={i} />)
         ) : posts.length === 0 ? (
-          <div className="p-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-              <Home className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h2 className="text-lg font-semibold text-foreground mb-2">Your feed is empty</h2>
-            <p className="text-muted-foreground">
-              Follow some accounts to see posts here
-            </p>
-          </div>
+          <div className="p-8 text-center text-muted-foreground">No posts to show.</div>
         ) : (
           <div>
             {posts.map((post) => (
-              <PostCard key={post.uri} post={post} />
+              <PostCard
+                key={post.uri}
+                post={post}
+                isSaved={savedUris.has(post.uri)}
+                onToggleSave={toggleSave}
+              />
             ))}
-            
-            {cursor && (
-              <div className="p-4 flex justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => fetchFeed(false)}
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Loading...' : 'Load more'}
-                </Button>
-              </div>
-            )}
+          </div>
+        )}
+
+        {cursor && !isLoading && (
+          <div className="flex justify-center py-6">
+            <Button variant="outline" onClick={() => fetchFeed(false)}>
+              Load more
+            </Button>
           </div>
         )}
       </div>
