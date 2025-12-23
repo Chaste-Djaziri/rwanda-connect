@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { atprotoClient } from '@/lib/atproto';
 import { toast } from '@/components/ui/sonner';
 import type { FeedPost } from '@/components/feed/PostCard';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 
 export function CommentDialog({
   open,
@@ -82,8 +83,9 @@ export function CommentDialog({
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground truncate">
+                <p className="text-sm font-semibold text-foreground truncate inline-flex items-center gap-1">
                   {post.author.displayName || post.author.handle}
+                  {post.author.verified && <VerifiedBadge className="w-3.5 h-3.5 text-primary" />}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">@{post.author.handle}</p>
                 <p className="text-sm text-foreground mt-2 whitespace-pre-wrap break-words">

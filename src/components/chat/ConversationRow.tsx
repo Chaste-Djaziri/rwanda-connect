@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ChatConvo } from '@/lib/chat';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 
 interface ConversationRowProps {
   convo: ChatConvo;
@@ -43,8 +44,9 @@ export function ConversationRow({ convo, isActive, currentUserDid }: Conversatio
       </Avatar>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className="font-semibold text-foreground truncate">
+          <p className="font-semibold text-foreground truncate inline-flex items-center gap-1">
             {other?.displayName || other?.handle || 'Conversation'}
+            {other?.verified && <VerifiedBadge className="w-3.5 h-3.5 text-primary" />}
           </p>
           {convo.status === 'request' && (
             <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-primary/10 text-primary">

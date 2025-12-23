@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import {
   Calendar,
+  CheckCircle2,
   BellPlus,
   Copy,
   List,
@@ -47,6 +48,7 @@ interface ProfileData {
   postsCount: number;
   createdAt?: string;
   chatAllowIncoming?: string;
+  verified?: boolean;
   viewer?: {
     blockedBy?: boolean;
     blocking?: string;
@@ -108,6 +110,7 @@ const mapFeedItem = (item: any): FeedPost => ({
     handle: item.post.author.handle,
     displayName: item.post.author.displayName,
     avatar: item.post.author.avatar,
+    verified: item.post.author.verification?.verifiedStatus === 'valid',
   },
   record: {
     text: item.post.record.text,
@@ -333,8 +336,15 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const loadPinnedFeeds = async () => {
+      if (!isAuthenticated || authLoading) {
+        setPinnedFeedUris(new Set());
+        return;
+      }
       const prefsResult = await atprotoClient.getPreferences();
-      if (!prefsResult.success || !prefsResult.data) return;
+      if (!prefsResult.success || !prefsResult.data) {
+        setPinnedFeedUris(new Set());
+        return;
+      }
       const savedPref = prefsResult.data.find(
         (pref: any) =>
           pref?.$type === 'app.bsky.actor.defs#savedFeedsPrefV2' ||
@@ -344,7 +354,7 @@ export default function ProfilePage() {
       setPinnedFeedUris(new Set(items.filter((item) => item.pinned).map((item) => item.value)));
     };
     loadPinnedFeeds().catch(() => undefined);
-  }, []);
+  }, [isAuthenticated, authLoading]);
 
   const toggleSave = useCallback((post: FeedPost) => {
     setSavedUris((prev) => {
@@ -583,6 +593,7 @@ export default function ProfilePage() {
             postsCount: result.data.postsCount ?? 0,
             createdAt: result.data.createdAt,
             chatAllowIncoming: result.data.associated?.chat?.allowIncoming,
+            verified: result.data.verification?.verifiedStatus === 'valid',
             viewer: {
               blockedBy: result.data.viewer?.blockedBy,
               blocking: result.data.viewer?.blocking,
@@ -830,9 +841,12 @@ export default function ProfilePage() {
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-4 h-14 flex items-center gap-4">
           <div className="flex-1 min-w-0">
-            <h1 className="font-semibold text-foreground truncate">
-              {profile?.displayName || profile?.handle || 'Profile'}
-            </h1>
+            <div className="flex items-center gap-1">
+              <h1 className="font-semibold text-foreground truncate">
+                {profile?.displayName || profile?.handle || 'Profile'}
+              </h1>
+              {profile?.verified && <CheckCircle2 className="w-4 h-4 text-primary" />}
+            </div>
             {profile && (
               <p className="text-xs text-muted-foreground">
                 {profile.postsCount} posts
@@ -993,9 +1007,14 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="mb-4">
-              <h2 className="text-2xl font-bold text-foreground">
-                {profile?.displayName || profile?.handle}
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-bold text-foreground">
+                  {profile?.displayName || profile?.handle}
+                </h2>
+                {profile?.verified && (
+                  <CheckCircle2 className="w-5 h-5 text-primary" aria-label="Verified account" />
+                )}
+              </div>
               <p className="text-muted-foreground">@{profile?.handle}</p>
             </div>
           )}

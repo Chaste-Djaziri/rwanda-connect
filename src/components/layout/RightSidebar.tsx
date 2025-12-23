@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { chatApi, ChatConvo } from '@/lib/chat';
 import { useAuth } from '@/contexts/AuthContext';
 import { atprotoClient } from '@/lib/atproto';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 
 const consolidatedMessage = (message?: { text?: string; isDeleted?: boolean }) => {
   if (!message) return 'Start chatting';
@@ -171,9 +172,14 @@ export function RightSidebar() {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {actor.displayName || actor.handle}
-                        </p>
+                        <div className="flex items-center gap-1">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {actor.displayName || actor.handle}
+                          </p>
+                          {actor.verification?.verifiedStatus === 'valid' && (
+                            <VerifiedBadge className="w-3.5 h-3.5 text-primary" />
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground truncate">@{actor.handle}</p>
                       </div>
                     </Link>
@@ -230,9 +236,12 @@ export function RightSidebar() {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm text-foreground truncate">
-                              {other?.displayName || other?.handle || 'Conversation'}
-                            </p>
+                            <div className="flex items-center gap-1">
+                              <p className="font-medium text-sm text-foreground truncate">
+                                {other?.displayName || other?.handle || 'Conversation'}
+                              </p>
+                              {other?.verified && <VerifiedBadge className="w-3.5 h-3.5 text-primary" />}
+                            </div>
                             <p className="text-xs text-muted-foreground truncate">
                               {convo.lastMessage?.text ||
                                 (consolidatedMessage(convo.lastMessage))}

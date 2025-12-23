@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { atprotoClient } from '@/lib/atproto';
 import { Compass, Search, TrendingUp, Users, RefreshCw } from 'lucide-react';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 
 interface SuggestedFeed {
   uri: string;
@@ -18,6 +19,7 @@ interface SuggestedFeed {
     did: string;
     handle: string;
     displayName?: string;
+    verified?: boolean;
   };
 }
 
@@ -28,6 +30,7 @@ interface SuggestedActor {
   description?: string;
   avatar?: string;
   followersCount?: number;
+  verified?: boolean;
 }
 
 function FeedCard({ feed }: { feed: SuggestedFeed }) {
@@ -45,7 +48,7 @@ function FeedCard({ feed }: { feed: SuggestedFeed }) {
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-foreground truncate">{feed.displayName}</h3>
-          <p className="text-sm text-muted-foreground truncate">
+          <p className="text-sm text-muted-foreground truncate flex items-center gap-1">
             by{' '}
             <Link
               to={`/profile/${feed.creator.handle}`}
@@ -53,6 +56,7 @@ function FeedCard({ feed }: { feed: SuggestedFeed }) {
             >
               @{feed.creator.handle}
             </Link>
+            {feed.creator?.verified && <VerifiedBadge className="w-3.5 h-3.5 text-primary" />}
           </p>
           {feed.description && (
             <p className="text-sm text-foreground/80 mt-1 line-clamp-2">{feed.description}</p>
@@ -86,9 +90,12 @@ function ActorCard({ actor }: { actor: SuggestedActor }) {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-foreground truncate">
-            {actor.displayName || actor.handle}
-          </h3>
+          <div className="flex items-center gap-1">
+            <h3 className="font-semibold text-foreground truncate">
+              {actor.displayName || actor.handle}
+            </h3>
+            {actor.verified && <VerifiedBadge className="w-4 h-4 text-primary" />}
+          </div>
           <p className="text-sm text-muted-foreground truncate">@{actor.handle}</p>
           {actor.description && (
             <p className="text-sm text-foreground/80 mt-1 line-clamp-2">{actor.description}</p>
@@ -154,6 +161,7 @@ export default function ExplorePage() {
               did: feed.creator.did,
               handle: feed.creator.handle,
               displayName: feed.creator.displayName,
+              verified: feed.creator.verification?.verifiedStatus === 'valid',
             },
           }))
         );
@@ -169,6 +177,7 @@ export default function ExplorePage() {
           description: actor.description,
           avatar: actor.avatar,
           followersCount: actor.followersCount,
+          verified: actor.verification?.verifiedStatus === 'valid',
         }));
         setActors(mappedActors);
         setDefaultActors(mappedActors);
@@ -207,6 +216,7 @@ export default function ExplorePage() {
               description: actor.description,
               avatar: actor.avatar,
               followersCount: actor.followersCount,
+              verified: actor.verification?.verifiedStatus === 'valid',
             }))
           );
           setActiveTab('people');

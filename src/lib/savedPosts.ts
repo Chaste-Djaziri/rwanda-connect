@@ -6,6 +6,7 @@ export interface SavedPost {
     handle: string;
     displayName?: string;
     avatar?: string;
+    verified?: boolean;
   };
   record: {
     text: string;
@@ -14,6 +15,11 @@ export interface SavedPost {
   replyCount: number;
   repostCount: number;
   likeCount: number;
+  embed?: any;
+  viewer?: {
+    like?: string;
+    repost?: string;
+  };
 }
 
 const STORAGE_KEY = 'saved_posts';

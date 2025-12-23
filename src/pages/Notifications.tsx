@@ -6,6 +6,7 @@ import { atprotoClient } from '@/lib/atproto';
 import { useAuth } from '@/contexts/AuthContext';
 import { Bell, Heart, Repeat2, MessageSquare, UserPlus, AtSign, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 
 interface Notification {
   uri: string;
@@ -15,6 +16,7 @@ interface Notification {
     handle: string;
     displayName?: string;
     avatar?: string;
+    verified?: boolean;
   };
   reason: 'like' | 'repost' | 'follow' | 'mention' | 'reply' | 'quote';
   isRead: boolean;
@@ -93,9 +95,10 @@ function NotificationItem({ notification }: { notification: Notification }) {
               <p className="text-sm">
                 <Link
                   to={`/profile/${notification.author.handle}`}
-                  className="font-semibold text-foreground hover:underline"
+                  className="font-semibold text-foreground hover:underline inline-flex items-center gap-1"
                 >
-                  {notification.author.displayName || notification.author.handle}
+                  <span>{notification.author.displayName || notification.author.handle}</span>
+                  {notification.author.verified && <VerifiedBadge className="w-3.5 h-3.5 text-primary" />}
                 </Link>{' '}
                 <span className="text-muted-foreground">{label}</span>
               </p>
@@ -158,6 +161,7 @@ export default function NotificationsPage() {
             handle: item.author.handle,
             displayName: item.author.displayName,
             avatar: item.author.avatar,
+            verified: item.author.verification?.verifiedStatus === 'valid',
           },
           reason: item.reason,
           isRead: item.isRead,

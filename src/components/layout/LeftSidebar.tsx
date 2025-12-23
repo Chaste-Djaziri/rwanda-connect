@@ -7,6 +7,7 @@ import { PenSquare, MoreHorizontal, User, UserPlus, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils';
 import { navItems } from './navItems';
 import { NewPostDialog } from '@/components/composer/NewPostDialog';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -114,7 +115,10 @@ export function LeftSidebar() {
                 </div>
                 <div className="hidden xl:flex min-w-0 flex-1 items-center gap-3 opacity-0 transition-all duration-200 group-hover:opacity-100 group-data-[state=open]:opacity-100">
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold truncate">{user?.displayName || user?.handle || 'Account'}</p>
+                    <div className="flex items-center gap-1">
+                      <p className="font-semibold truncate">{user?.displayName || user?.handle || 'Account'}</p>
+                      {user?.verified && <VerifiedBadge className="w-4 h-4 text-primary" />}
+                    </div>
                     {user?.handle && <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>}
                   </div>
                   <div className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground transition-colors group-hover:text-foreground group-hover:bg-muted group-data-[state=open]:text-foreground group-data-[state=open]:bg-muted">

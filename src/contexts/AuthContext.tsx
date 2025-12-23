@@ -7,6 +7,7 @@ interface User {
   handle: string;
   displayName?: string;
   avatar?: string;
+  verified?: boolean;
 }
 
 interface AuthContextType {
@@ -44,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           handle: profileResult.data.handle,
           displayName: profileResult.data.displayName,
           avatar: profileResult.data.avatar,
+          verified: profileResult.data.verification?.verifiedStatus === 'valid',
         });
       }
     } catch (error) {

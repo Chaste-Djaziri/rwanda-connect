@@ -103,6 +103,7 @@ export default function FeedDetailPage() {
               handle: item.post.author.handle,
               displayName: item.post.author.displayName,
               avatar: item.post.author.avatar,
+              verified: item.post.author.verification?.verifiedStatus === 'valid',
             },
             record: {
               text: item.post.record.text,

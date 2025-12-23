@@ -59,6 +59,7 @@ export default function HashtagPage() {
               handle: post.author.handle,
               displayName: post.author.displayName,
               avatar: post.author.avatar,
+              verified: post.author.verification?.verifiedStatus === 'valid',
             },
             record: {
               text: post.record.text,

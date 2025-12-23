@@ -3,6 +3,7 @@ export interface ChatProfile {
   handle: string;
   displayName?: string;
   avatar?: string;
+  verified?: boolean;
 }
 
 export interface ChatMessage {
@@ -68,6 +69,7 @@ const normalizeConvo = (convo: any): ChatConvo => ({
     handle: member.handle,
     displayName: member.displayName,
     avatar: member.avatar,
+    verified: member.verification?.verifiedStatus === 'valid',
   })),
   lastMessage: normalizeMessage(convo.lastMessage),
   unreadCount: convo.unreadCount ?? 0,
@@ -175,14 +177,21 @@ export const chatApi = {
   },
 
   async getConvoAvailability(members: string[]) {
-    const data = await request<{ canChat: boolean; convo?: any }>(`/convo/availability`, {
-      method: 'POST',
-      body: JSON.stringify({ members }),
-    });
-    return {
-      canChat: data.canChat,
-      convo: data.convo ? normalizeConvo(data.convo) : undefined,
-    };
+    try {
+      const data = await request<{ canChat: boolean; convo?: any }>(`/convo/availability`, {
+        method: 'POST',
+        body: JSON.stringify({ members }),
+      });
+      return {
+        canChat: data.canChat,
+        convo: data.convo ? normalizeConvo(data.convo) : undefined,
+      };
+    } catch (error: any) {
+      if (error instanceof ChatApiError && error.status === 404) {
+        return { canChat: true, convo: undefined };
+      }
+      throw error;
+    }
   },
 };
 

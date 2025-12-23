@@ -34,6 +34,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { atprotoClient } from '@/lib/atproto';
 import { toast } from '@/components/ui/sonner';
 import { CommentDialog } from '@/components/feed/CommentDialog';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 
 export interface FeedPost {
   uri: string;
@@ -43,6 +44,7 @@ export interface FeedPost {
     handle: string;
     displayName?: string;
     avatar?: string;
+    verified?: boolean;
   };
   record: {
     text: string;
@@ -112,7 +114,10 @@ const renderExternalEmbed = (embed: any) => {
   const isGifVideo = /\.gifv(\?|$)/i.test(external.uri);
   if (isGif) {
     return (
-      <div className="mt-3 overflow-hidden rounded-xl border border-border">
+      <div
+        className="mt-3 overflow-hidden rounded-xl border border-border"
+        onClick={(event) => event.stopPropagation()}
+      >
         {isGifVideo ? (
           <video
             autoPlay
@@ -306,7 +311,10 @@ const renderVideoEmbed = (embed: any) => {
   if (!video?.playlist && !video?.thumb) return null;
   const isGif = Boolean(video?.isGif);
   return (
-    <div className="mt-3 overflow-hidden rounded-xl border border-border">
+    <div
+      className="mt-3 overflow-hidden rounded-xl border border-border"
+      onClick={(event) => event.stopPropagation()}
+    >
       {video.playlist ? (
         isGif ? (
           <video autoPlay loop muted playsInline className="w-full h-auto object-contain bg-black" poster={video.thumb}>
@@ -338,8 +346,11 @@ const renderRecordEmbed = (embed: any) => {
   return (
     <div className="mt-3 rounded-xl border border-border p-3 bg-muted/20">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span className="font-semibold text-foreground">
+        <span className="font-semibold text-foreground inline-flex items-center gap-1">
           {author?.displayName || author?.handle || 'Post'}
+          {author?.verification?.verifiedStatus === 'valid' && (
+            <VerifiedBadge className="w-3.5 h-3.5 text-primary" />
+          )}
         </span>
         {author?.handle && <span>@{author.handle}</span>}
       </div>
@@ -465,6 +476,7 @@ function VideoPlayer({ src, poster }: { src: string; poster?: string }) {
       className="relative bg-black"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onClick={(event) => event.stopPropagation()}
     >
       <video
         ref={videoRef}
@@ -793,9 +805,10 @@ export function PostCard({
           <div className="flex items-baseline gap-2 mb-1">
             <Link
               to={`/profile/${post.author.handle}`}
-              className="font-semibold text-foreground truncate hover:underline"
+              className="font-semibold text-foreground truncate hover:underline flex items-center gap-1"
             >
-              {post.author.displayName || post.author.handle}
+              <span className="truncate">{post.author.displayName || post.author.handle}</span>
+              {post.author.verified && <VerifiedBadge className="w-4 h-4 text-primary" />}
             </Link>
             <Link
               to={`/profile/${post.author.handle}`}
