@@ -44,7 +44,7 @@ class ChatApiError extends Error {
   }
 }
 
-const CHAT_API_BASE = '/api/chat';
+const CHAT_API_BASE = import.meta.env.VITE_CHAT_API_BASE ?? '/api/chat';
 
 const normalizeMessage = (message: any): ChatMessage | undefined => {
   if (!message || typeof message !== 'object') return undefined;

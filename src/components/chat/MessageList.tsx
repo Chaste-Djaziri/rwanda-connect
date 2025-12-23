@@ -26,6 +26,9 @@ export function MessageList({
 }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const isLoadingMoreRef = useRef(false);
+  const prevScrollHeightRef = useRef(0);
+  const prevScrollTopRef = useRef(0);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -33,6 +36,25 @@ export function MessageList({
     const node = containerRef.current;
     node.scrollTop = node.scrollHeight;
   }, [messages, isAtBottom]);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    if (!isLoadingMore) {
+      if (isLoadingMoreRef.current) {
+        const node = containerRef.current;
+        const prevHeight = prevScrollHeightRef.current;
+        const prevTop = prevScrollTopRef.current;
+        const nextHeight = node.scrollHeight;
+        node.scrollTop = nextHeight - prevHeight + prevTop;
+        isLoadingMoreRef.current = false;
+      }
+      return;
+    }
+    const node = containerRef.current;
+    isLoadingMoreRef.current = true;
+    prevScrollHeightRef.current = node.scrollHeight;
+    prevScrollTopRef.current = node.scrollTop;
+  }, [isLoadingMore]);
 
   useEffect(() => {
     if (!containerRef.current || !forceScrollToken) return;
@@ -46,12 +68,15 @@ export function MessageList({
     if (!node) return;
     const distance = node.scrollHeight - node.scrollTop - node.clientHeight;
     setIsAtBottom(distance < 80);
+    if (node.scrollTop < 80 && hasMore && !isLoadingMore) {
+      onLoadMore();
+    }
   };
 
   const jumpToLatest = () => {
     const node = containerRef.current;
     if (!node) return;
-    node.scrollTop = node.scrollHeight;
+    node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' });
     setIsAtBottom(true);
   };
 
@@ -69,23 +94,16 @@ export function MessageList({
   }
 
   return (
-    <div className="relative flex-1">
+    <div className="relative flex-1 min-h-0">
       <div
         ref={containerRef}
         onScroll={handleScroll}
         className="h-full overflow-y-auto"
       >
         <div className="flex flex-col gap-4 px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
-          {hasMore && (
+          {isLoadingMore && (
             <div className="flex justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onLoadMore}
-                disabled={isLoadingMore}
-              >
-                {isLoadingMore ? 'Loading...' : 'Load older messages'}
-              </Button>
+              <Skeleton className="h-7 w-28 rounded-full" />
             </div>
           )}
           {messages.length === 0 && (

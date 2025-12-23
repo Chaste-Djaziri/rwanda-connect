@@ -171,7 +171,7 @@ export default function ChatThreadPage() {
         </div>
       </header>
 
-      <div className="flex min-h-[calc(100dvh-4rem)] flex-col">
+      <div className="flex min-h-[calc(100dvh-4rem)] flex-col min-h-0">
         {error && (
           <div className="px-6 py-4">
             <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -180,15 +180,17 @@ export default function ChatThreadPage() {
           </div>
         )}
 
-        <MessageList
-          messages={messages}
-          currentUserDid={user?.did}
-          isLoading={isLoading}
-          hasMore={Boolean(cursor)}
-          isLoadingMore={isLoadingMore}
-          onLoadMore={() => fetchMessages(false)}
-          forceScrollToken={scrollToken}
-        />
+        <div className="flex-1 min-h-0">
+          <MessageList
+            messages={messages}
+            currentUserDid={user?.did}
+            isLoading={isLoading}
+            hasMore={Boolean(cursor)}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={() => fetchMessages(false)}
+            forceScrollToken={scrollToken}
+          />
+        </div>
 
         <div className="sticky bottom-0 z-20 pb-[env(safe-area-inset-bottom)]">
           <MessageComposer onSend={handleSend} isSending={isSending} />

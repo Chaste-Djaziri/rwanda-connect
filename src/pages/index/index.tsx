@@ -51,9 +51,14 @@ export default function Index() {
       <main className="flex-1 flex items-center relative z-10">
         <div className="max-w-6xl mx-auto px-6 py-16">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-8">
-              <Globe className="w-4 h-4" />
-              Powered by AT Protocol
+            <div className="flex flex-wrap items-center gap-3 mb-8">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium">
+                <Globe className="w-4 h-4" />
+                Powered by AT Protocol
+              </div>
+              <div className="inline-flex items-center px-4 py-2 rounded-full bg-foreground/10 text-foreground text-sm font-semibold">
+                Made by Chaste Djaziri
+              </div>
             </div>
             
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-foreground leading-[1.1] mb-6">
