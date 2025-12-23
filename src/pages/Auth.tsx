@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, AlertCircle, Lock, AtSign } from 'lucide-react';
+import { Loader2, AlertCircle, Lock, AtSign, X } from 'lucide-react';
 import { z } from 'zod';
 import { atprotoClient } from '@/lib/atproto';
 import { AtpSessionData } from '@atproto/api';
@@ -25,7 +25,7 @@ const loginSchema = z.object({
 export default function AuthPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login, isAuthenticated, isLoading: authLoading, switchAccount } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading, switchAccount, logout } = useAuth();
   
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -38,6 +38,7 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const [switchingDid, setSwitchingDid] = useState<string | null>(null);
+  const [removingDid, setRemovingDid] = useState<string | null>(null);
 
   useEffect(() => {
     const query = identifier.trim();
@@ -232,12 +233,34 @@ export default function AuthPage() {
                         <p className="font-semibold text-foreground truncate">@{account.handle}</p>
                         <p className="text-xs text-muted-foreground truncate">{account.did}</p>
                       </div>
-                      {switchingDid === account.did && (
-                        <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Switching...
-                        </div>
-                      )}
+                      <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                        {switchingDid === account.did && (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Switching...
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          aria-label={`Remove ${account.handle} from this device`}
+                          className="rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                          onClick={async (event) => {
+                            event.stopPropagation();
+                            if (removingDid) return;
+                            setRemovingDid(account.did);
+                            atprotoClient.removeStoredSession(account.did);
+                            setSavedAccounts((prev) => prev.filter((item) => item.did !== account.did));
+                            if (account.did === atprotoClient.getDid()) {
+                              await logout();
+                              setShowLoginForm(true);
+                            }
+                            setRemovingDid(null);
+                          }}
+                          disabled={switchingDid === account.did || removingDid === account.did}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
                     </button>
                   ))}
                 </div>

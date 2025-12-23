@@ -31,17 +31,19 @@ function PostSkeleton() {
 }
 
 export default function FeedPage() {
-  const discoverFeedUri =
-    'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot';
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<'discover' | 'following'>('discover');
+  const [pinnedFeeds, setPinnedFeeds] = useState<
+    Array<{ id: string; type: string; value: string; label: string; avatar?: string }>
+  >([]);
+  const [activeFeed, setActiveFeed] = useState<{ id: string; type: string; value: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string | undefined>();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const shouldScrollTabs = pinnedFeeds.length > 4;
 
   useEffect(() => {
     const saved = getSavedPosts().map((post) => post.uri);
@@ -62,8 +64,74 @@ export default function FeedPage() {
     });
   }, []);
 
+  const fetchPinnedFeeds = useCallback(async () => {
+    try {
+      const prefsResult = await atprotoClient.getPreferences();
+      const prefs = prefsResult.success && prefsResult.data ? prefsResult.data : [];
+      const savedPref = prefs.find(
+        (pref: any) =>
+          pref?.$type === 'app.bsky.actor.defs#savedFeedsPrefV2' ||
+          pref?.$type === 'app.bsky.actor.defs#savedFeedsPref'
+      );
+      const items: Array<{ id: string; type: string; value: string; pinned: boolean }> =
+        savedPref?.items || [];
+      const pinned = items.filter((item) => item.pinned);
+
+      const feedUris = pinned.filter((item) => item.type === 'feed').map((item) => item.value);
+      const feedMap = new Map<string, { label: string; avatar?: string }>();
+      if (feedUris.length > 0) {
+        const details = await atprotoClient.getFeedGenerators(feedUris);
+        if (details.success && details.data) {
+          details.data.forEach((feed: any) => {
+            feedMap.set(feed.uri, {
+              label: feed.displayName || 'Feed',
+              avatar: feed.avatar,
+            });
+          });
+        }
+      }
+
+      const mapped = pinned.map((item) => {
+        if (item.type === 'feed') {
+          const meta = feedMap.get(item.value);
+          return {
+            id: item.id,
+            type: item.type,
+            value: item.value,
+            label: meta?.label || 'Feed',
+            avatar: meta?.avatar,
+          };
+        }
+        if (item.type === 'timeline') {
+          const label =
+            item.value === 'following'
+              ? 'Following'
+              : item.value === 'home'
+                ? 'Home'
+                : item.value;
+          return { id: item.id, type: item.type, value: item.value, label };
+        }
+        return { id: item.id, type: item.type, value: item.value, label: 'Feed' };
+      });
+
+      setPinnedFeeds(mapped);
+      if (mapped.length > 0) {
+        const stillExists = activeFeed && mapped.some((item) => item.id === activeFeed.id);
+        if (!stillExists) {
+          setActiveFeed({ id: mapped[0].id, type: mapped[0].type, value: mapped[0].value });
+        }
+      } else {
+        setActiveFeed({ id: 'timeline:following', type: 'timeline', value: 'following' });
+      }
+    } catch {
+      setPinnedFeeds([]);
+      setActiveFeed({ id: 'timeline:following', type: 'timeline', value: 'following' });
+    }
+  }, [activeFeed]);
+
   const fetchFeed = useCallback(
     async (refresh = false) => {
+      if (!activeFeed) return;
       if (refresh) {
         setIsRefreshing(true);
       } else if (posts.length > 0) {
@@ -75,9 +143,11 @@ export default function FeedPage() {
 
       try {
         const result =
-          activeTab === 'discover'
-            ? await atprotoClient.getFeed(discoverFeedUri, refresh ? undefined : cursor, 30)
-            : await atprotoClient.getTimeline(refresh ? undefined : cursor, 30);
+          activeFeed.type === 'timeline'
+            ? await atprotoClient.getTimeline(refresh ? undefined : cursor, 30)
+            : activeFeed.type === 'feed'
+              ? await atprotoClient.getFeed(activeFeed.value, refresh ? undefined : cursor, 30)
+              : { success: false };
         if (result.success && result.data) {
           const feedPosts: FeedPost[] = result.data.map((item: any) => ({
             uri: item.post.uri,
@@ -120,14 +190,19 @@ export default function FeedPage() {
         setIsRefreshing(false);
       }
     },
-    [cursor, activeTab, posts.length]
+    [cursor, activeFeed, posts.length]
   );
 
   useEffect(() => {
+    fetchPinnedFeeds();
+  }, [fetchPinnedFeeds]);
+
+  useEffect(() => {
+    if (!activeFeed) return;
     setCursor(undefined);
     setPosts([]);
     fetchFeed(true);
-  }, [activeTab]);
+  }, [activeFeed]);
 
   useEffect(() => {
     const node = loadMoreRef.current;
@@ -165,19 +240,36 @@ export default function FeedPage() {
           </div>
         </div>
         <div className="px-6 border-t border-border/60">
-          <div className="grid grid-cols-2 text-sm font-semibold">
-            {(['discover', 'following'] as const).map((tab) => (
+          <div className={`flex py-2 ${shouldScrollTabs ? 'gap-2 overflow-x-auto' : ''}`}>
+            {pinnedFeeds.length === 0 && (
               <button
-                key={tab}
                 type="button"
-                onClick={() => setActiveTab(tab)}
-                className={`py-3 border-b-2 transition-colors text-center ${
-                  activeTab === tab
+                onClick={() => setActiveFeed({ id: 'timeline:following', type: 'timeline', value: 'following' })}
+                className={`${
+                  shouldScrollTabs ? 'shrink-0 px-4' : 'flex-1 basis-0 px-4'
+                } py-2 text-sm font-semibold text-center border-b-2 transition-colors whitespace-nowrap ${
+                  activeFeed?.type === 'timeline' && activeFeed?.value === 'following'
                     ? 'border-primary text-foreground'
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {tab === 'discover' ? 'Discover' : 'Following'}
+                Following
+              </button>
+            )}
+            {pinnedFeeds.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveFeed({ id: item.id, type: item.type, value: item.value })}
+                className={`${
+                  shouldScrollTabs ? 'shrink-0 px-4' : 'flex-1 basis-0 px-4'
+                } py-2 text-sm font-semibold text-center border-b-2 transition-colors whitespace-nowrap ${
+                  activeFeed?.id === item.id
+                    ? 'border-primary text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {item.label}
               </button>
             ))}
           </div>

@@ -31,6 +31,7 @@ export default function ChatThreadPage() {
   const [error, setError] = useState<string | null>(null);
   const [convo, setConvo] = useState<ChatConvo | null>(null);
   const [readMarked, setReadMarked] = useState(false);
+  const [scrollToken, setScrollToken] = useState<string>('');
 
   const fetchConvo = async () => {
     if (!convoId) return;
@@ -97,10 +98,12 @@ export default function ChatThreadPage() {
       isPending: true,
     };
     setMessages((prev) => mergeMessages(prev, [optimistic]));
+    setScrollToken(tempId);
 
     try {
       const sent = await chatApi.sendMessage(convoId, text);
       setMessages((prev) => mergeMessages(prev.filter((msg) => msg.id !== tempId), [sent]));
+      setScrollToken(sent.id);
     } catch (err) {
       setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
       setError(err instanceof Error ? err.message : 'Failed to send message.');
@@ -179,9 +182,12 @@ export default function ChatThreadPage() {
           isLoadingMore={isLoadingMore}
           onLoadMore={() => fetchMessages(false)}
           readStatusLabel={readStatusLabel}
+          forceScrollToken={scrollToken}
         />
 
-        <MessageComposer onSend={handleSend} isSending={isSending} />
+        <div className="sticky bottom-0 z-20">
+          <MessageComposer onSend={handleSend} isSending={isSending} />
+        </div>
       </div>
     </AppLayout>
   );

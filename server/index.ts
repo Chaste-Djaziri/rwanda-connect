@@ -151,6 +151,40 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === 'POST' && pathname === '/api/chat/session/restore') {
+      const body = await readJsonBody<{ session?: any }>(req);
+      const sessionData = body.session;
+
+      if (!sessionData?.accessJwt || !sessionData?.refreshJwt || !sessionData?.did) {
+        sendJson(res, 400, { error: 'Invalid session payload.' });
+        return;
+      }
+
+      const agent = new AtpAgent({ service: BSKY_SERVICE });
+      await agent.resumeSession(sessionData);
+
+      if (!agent.did) {
+        sendJson(res, 401, { error: 'Unable to restore chat session.' });
+        return;
+      }
+
+      const sessionId = randomUUID();
+      sessions.set(sessionId, {
+        agent,
+        did: agent.did,
+        handle: agent.session?.handle,
+        createdAt: Date.now(),
+      });
+
+      const cookieParts = [`chat_session=${encodeURIComponent(sessionId)}`, 'HttpOnly', 'Path=/', 'SameSite=Lax'];
+      if (process.env.NODE_ENV === 'production') {
+        cookieParts.push('Secure');
+      }
+      res.setHeader('Set-Cookie', cookieParts.join('; '));
+      sendJson(res, 200, { success: true, did: agent.did, handle: agent.session?.handle });
+      return;
+    }
+
     if (req.method === 'GET' && pathname === '/api/chat/session') {
       const session = requireSession(req, res);
       if (!session) return;

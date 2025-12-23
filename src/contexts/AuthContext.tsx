@@ -62,8 +62,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await refreshUser();
           setIsChatSessionLoading(true);
           try {
-            await chatApi.checkSession();
-            setHasChatSession(true);
+            const sessionData = atprotoClient.getSession();
+            if (sessionData) {
+              await chatApi.restoreSession(sessionData);
+              setHasChatSession(true);
+            } else {
+              setHasChatSession(false);
+            }
           } catch {
             setHasChatSession(false);
           } finally {
@@ -103,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!ok) return false;
         await refreshUser();
         try {
-          await chatApi.checkSession();
+          await chatApi.restoreSession(session);
           setHasChatSession(true);
         } catch {
           setHasChatSession(false);

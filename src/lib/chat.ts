@@ -49,7 +49,10 @@ const CHAT_API_BASE = '/api/chat';
 const normalizeMessage = (message: any): ChatMessage | undefined => {
   if (!message || typeof message !== 'object') return undefined;
   const hasText = typeof message.text === 'string';
-  const senderDid = message.sender?.did ?? '';
+  const senderDid =
+    typeof message.sender === 'string'
+      ? message.sender
+      : message.sender?.did ?? message.senderDid ?? '';
   const fallbackId =
     message.id ?? globalThis.crypto?.randomUUID?.() ?? `temp-${Math.random().toString(36).slice(2)}`;
   return {
@@ -109,6 +112,13 @@ export const chatApi = {
     return request<{ success: boolean; did: string; handle?: string }>(`/session`, {
       method: 'POST',
       body: JSON.stringify({ identifier, appPassword }),
+    });
+  },
+
+  async restoreSession(session: any) {
+    return request<{ success: boolean; did: string; handle?: string }>(`/session/restore`, {
+      method: 'POST',
+      body: JSON.stringify({ session }),
     });
   },
 
