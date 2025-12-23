@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -34,30 +35,20 @@ function PostSkeleton() {
 
 export default function FeedPage() {
   const { isAuthenticated } = useAuth();
+  const discoverFeedUri =
+    'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot';
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
-  const [pinnedFeeds, setPinnedFeeds] = useState<
-    Array<{ id: string; type: string; value: string; label: string; avatar?: string }>
-  >([]);
-  const [activeFeed, setActiveFeed] = useState<{ id: string; type: string; value: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string | undefined>();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
-  const shouldScrollTabs = pinnedFeeds.length > 4;
-  const activeLabel = useMemo(() => {
-    if (!activeFeed) return 'Feed';
-    const match = pinnedFeeds.find((item) => item.id === activeFeed.id);
-    if (match?.label) return match.label;
-    if (activeFeed.type === 'timeline' && activeFeed.value === 'following') return 'Following';
-    return 'Feed';
-  }, [activeFeed, pinnedFeeds]);
 
   usePageMeta({
-    title: activeLabel,
-    description: `Latest posts from ${activeLabel.toLowerCase()} on HiiSide.`,
+    title: 'Discover',
+    description: 'Discover the latest posts on HiiSide.',
   });
 
   useEffect(() => {
@@ -79,100 +70,8 @@ export default function FeedPage() {
     });
   }, []);
 
-  const fetchPinnedFeeds = useCallback(async () => {
-    try {
-      if (!isAuthenticated) {
-        const discoverFeedUri =
-          'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot';
-        const suggested = await atprotoClient.getSuggestedFeedsPublic(undefined, 5);
-        const items = [
-          {
-            id: 'feed:discover',
-            type: 'feed',
-            value: discoverFeedUri,
-            label: 'Discover',
-          },
-          ...(suggested.success && suggested.data
-            ? suggested.data.map((feed: any) => ({
-                id: `feed:${feed.uri}`,
-                type: 'feed',
-                value: feed.uri,
-                label: feed.displayName || 'Feed',
-                avatar: feed.avatar,
-              }))
-            : []),
-        ];
-        setPinnedFeeds(items);
-        setActiveFeed((prev) => prev ?? { id: items[0].id, type: items[0].type, value: items[0].value });
-        return;
-      }
-
-      const prefsResult = await atprotoClient.getPreferences();
-      const prefs = prefsResult.success && prefsResult.data ? prefsResult.data : [];
-      const savedPref = prefs.find(
-        (pref: any) =>
-          pref?.$type === 'app.bsky.actor.defs#savedFeedsPrefV2' ||
-          pref?.$type === 'app.bsky.actor.defs#savedFeedsPref'
-      );
-      const items: Array<{ id: string; type: string; value: string; pinned: boolean }> =
-        savedPref?.items || [];
-      const pinned = items.filter((item) => item.pinned);
-
-      const feedUris = pinned.filter((item) => item.type === 'feed').map((item) => item.value);
-      const feedMap = new Map<string, { label: string; avatar?: string }>();
-      if (feedUris.length > 0) {
-        const details = await atprotoClient.getFeedGenerators(feedUris);
-        if (details.success && details.data) {
-          details.data.forEach((feed: any) => {
-            feedMap.set(feed.uri, {
-              label: feed.displayName || 'Feed',
-              avatar: feed.avatar,
-            });
-          });
-        }
-      }
-
-      const mapped = pinned.map((item) => {
-        if (item.type === 'feed') {
-          const meta = feedMap.get(item.value);
-          return {
-            id: item.id,
-            type: item.type,
-            value: item.value,
-            label: meta?.label || 'Feed',
-            avatar: meta?.avatar,
-          };
-        }
-        if (item.type === 'timeline') {
-          const label =
-            item.value === 'following'
-              ? 'Following'
-              : item.value === 'home'
-                ? 'Home'
-                : item.value;
-          return { id: item.id, type: item.type, value: item.value, label };
-        }
-        return { id: item.id, type: item.type, value: item.value, label: 'Feed' };
-      });
-
-      setPinnedFeeds(mapped);
-      if (mapped.length > 0) {
-        const stillExists = activeFeed && mapped.some((item) => item.id === activeFeed.id);
-        if (!stillExists) {
-          setActiveFeed({ id: mapped[0].id, type: mapped[0].type, value: mapped[0].value });
-        }
-      } else {
-        setActiveFeed({ id: 'timeline:following', type: 'timeline', value: 'following' });
-      }
-    } catch {
-      setPinnedFeeds([]);
-      setActiveFeed({ id: 'timeline:following', type: 'timeline', value: 'following' });
-    }
-  }, [activeFeed, isAuthenticated]);
-
   const fetchFeed = useCallback(
     async (refresh = false) => {
-      if (!activeFeed) return;
       if (refresh) {
         setIsRefreshing(true);
       } else if (posts.length > 0) {
@@ -183,16 +82,11 @@ export default function FeedPage() {
       setError(null);
 
       try {
-        const result =
-          activeFeed.type === 'timeline'
-            ? await atprotoClient.getTimeline(refresh ? undefined : cursor, 30)
-            : activeFeed.type === 'feed'
-              ? await atprotoClient.getFeed(
-                  activeFeed.value,
-                  refresh ? undefined : cursor,
-                  30
-                )
-              : { success: false };
+        const result = await atprotoClient.getFeed(
+          discoverFeedUri,
+          refresh ? undefined : cursor,
+          30
+        );
         if (result.success && result.data) {
           const feedPosts: FeedPost[] = result.data.map((item: any) => ({
             uri: item.post.uri,
@@ -235,19 +129,14 @@ export default function FeedPage() {
         setIsRefreshing(false);
       }
     },
-    [cursor, activeFeed, posts.length]
+    [cursor, posts.length]
   );
 
   useEffect(() => {
-    fetchPinnedFeeds();
-  }, [fetchPinnedFeeds]);
-
-  useEffect(() => {
-    if (!activeFeed) return;
     setCursor(undefined);
     setPosts([]);
     fetchFeed(true);
-  }, [activeFeed]);
+  }, []);
 
   useEffect(() => {
     const node = loadMoreRef.current;
@@ -285,38 +174,19 @@ export default function FeedPage() {
           </div>
         </div>
         <div className="px-6 border-t border-border/60">
-          <div className={`flex py-2 ${shouldScrollTabs ? 'gap-2 overflow-x-auto' : ''}`}>
-            {pinnedFeeds.length === 0 && (
-              <button
-                type="button"
-                onClick={() => setActiveFeed({ id: 'timeline:following', type: 'timeline', value: 'following' })}
-                className={`${
-                  shouldScrollTabs ? 'shrink-0 px-4' : 'flex-1 basis-0 px-4'
-                } py-2 text-sm font-semibold text-center border-b-2 transition-colors whitespace-nowrap ${
-                  activeFeed?.type === 'timeline' && activeFeed?.value === 'following'
-                    ? 'border-primary text-foreground'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Following
-              </button>
-            )}
-            {pinnedFeeds.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActiveFeed({ id: item.id, type: item.type, value: item.value })}
-                className={`${
-                  shouldScrollTabs ? 'shrink-0 px-4' : 'flex-1 basis-0 px-4'
-                } py-2 text-sm font-semibold text-center border-b-2 transition-colors whitespace-nowrap ${
-                  activeFeed?.id === item.id
-                    ? 'border-primary text-foreground'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
+          <div className="grid grid-cols-2 text-sm font-semibold">
+            <button
+              type="button"
+              className="py-3 border-b-2 border-primary text-foreground text-center"
+            >
+              Discover
+            </button>
+            <Link
+              to="/feeds"
+              className="py-3 border-b-2 border-transparent text-muted-foreground hover:text-foreground text-center"
+            >
+              Feeds
+            </Link>
           </div>
         </div>
       </header>

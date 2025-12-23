@@ -1153,7 +1153,29 @@ class ATProtoClient {
         data: response.data.topics,
       };
     } catch (error: any) {
+      if (error?.status === 401 || error?.message?.includes('Authentication Required')) {
+        return await this.getTrendingTopicsPublic(limit);
+      }
       console.error('Get trending topics error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getTrendingTopicsPublic(limit: number = 10) {
+    try {
+      const params = new URLSearchParams();
+      params.set('limit', String(limit));
+      const response = await fetch(`${PUBLIC_API}/xrpc/app.bsky.unspecced.getTrendingTopics?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const data = await response.json();
+      return {
+        success: true,
+        data: data.topics || [],
+      };
+    } catch (error: any) {
+      console.error('Get trending topics public error:', error);
       return { success: false, error: error.message };
     }
   }

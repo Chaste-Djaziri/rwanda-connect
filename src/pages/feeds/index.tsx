@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Compass, Settings, Star, Users, Search, ChevronRight, Pin } from 'lucide-react';
 import { usePageMeta } from '@/lib/seo';
+import { useAuth } from '@/contexts/AuthContext';
 
 
 type SavedFeedItem = {
@@ -66,11 +67,13 @@ function FeedCard({
   pinned,
   onPin,
   isPinning,
+  showPin,
 }: {
   feed: FeedGenerator;
   pinned?: boolean;
   onPin: (uri: string) => void;
   isPinning: boolean;
+  showPin: boolean;
 }) {
   return (
     <Link
@@ -98,26 +101,29 @@ function FeedCard({
           </p>
         )}
       </div>
-      <Button
-        type="button"
-        size="sm"
-        className="shrink-0"
-        variant={pinned ? 'secondary' : 'default'}
-        onClick={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          onPin(feed.uri);
-        }}
-        disabled={isPinning}
-      >
-        <Pin className="mr-2 h-3.5 w-3.5" />
-        {pinned ? 'Pinned' : 'Pin Feed'}
-      </Button>
+      {showPin && (
+        <Button
+          type="button"
+          size="sm"
+          className="shrink-0"
+          variant={pinned ? 'secondary' : 'default'}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onPin(feed.uri);
+          }}
+          disabled={isPinning}
+        >
+          <Pin className="mr-2 h-3.5 w-3.5" />
+          {pinned ? 'Pinned' : 'Pin Feed'}
+        </Button>
+      )}
     </Link>
   );
 }
 
 export default function FeedsPage() {
+  const { isAuthenticated } = useAuth();
   usePageMeta({
     title: 'Feeds',
     description: 'Browse and manage your pinned feeds on HiiSide.',
@@ -139,6 +145,27 @@ export default function FeedsPage() {
       setIsLoadingMore(true);
     }
     try {
+      if (!isAuthenticated) {
+        const suggested = await atprotoClient.getSuggestedFeedsPublic(
+          refreshSuggested ? undefined : suggestedCursor,
+          20
+        );
+        if (suggested.success && suggested.data) {
+          const mapped = suggested.data.map((feed: any) => ({
+            uri: feed.uri,
+            displayName: feed.displayName,
+            description: feed.description,
+            avatar: feed.avatar,
+            likeCount: feed.likeCount,
+            creator: { handle: feed.creator.handle },
+          }));
+          setSuggestedFeeds((prev) => (refreshSuggested ? mapped : [...prev, ...mapped]));
+          setSuggestedCursor(suggested.cursor);
+        }
+        setSavedFeeds([]);
+        setSavedFeedDetails({});
+        return;
+      }
       const prefsResult = await atprotoClient.getPreferences();
       const prefs = prefsResult.success && prefsResult.data ? prefsResult.data : [];
       const savedPref = prefs.find(
@@ -194,7 +221,7 @@ export default function FeedsPage() {
 
   useEffect(() => {
     fetchFeeds(true);
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const node = loadMoreRef.current;
@@ -246,7 +273,7 @@ export default function FeedsPage() {
     .filter(Boolean);
 
   return (
-    <AppLayout>
+    <AppLayout requireAuth={false}>
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -259,7 +286,8 @@ export default function FeedsPage() {
       </header>
 
       <div className="px-6 py-6 space-y-6">
-        <section className="space-y-4">
+        {isAuthenticated && (
+          <section className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="h-11 w-11 rounded-full bg-primary/10 text-primary flex items-center justify-center">
               <Compass className="h-5 w-5" />
@@ -300,7 +328,8 @@ export default function FeedsPage() {
               <p className="text-xs text-muted-foreground">No saved feeds yet.</p>
             )}
           </div>
-        </section>
+          </section>
+        )}
 
         <section className="space-y-4">
           <div className="flex items-start gap-3">
@@ -340,6 +369,7 @@ export default function FeedsPage() {
                   pinned={pinnedSet.has(feed.uri)}
                   onPin={handlePin}
                   isPinning={isPinning === feed.uri}
+                  showPin={isAuthenticated}
                 />
               ))
             ) : (
