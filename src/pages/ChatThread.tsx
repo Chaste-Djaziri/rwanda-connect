@@ -7,6 +7,8 @@ import { MessageList } from '@/components/chat/MessageList';
 import { MessageComposer } from '@/components/chat/MessageComposer';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 
 const mergeMessages = (existing: ChatMessage[], incoming: ChatMessage[]) => {
   const map = new Map<string, ChatMessage>();
@@ -112,6 +114,11 @@ export default function ChatThreadPage() {
     return convo.members.find((member) => member.did !== user.did) ?? convo.members[0];
   }, [convo, user?.did]);
 
+  const readStatusLabel = useMemo(() => {
+    if (messages.length === 0) return undefined;
+    return readMarked ? 'Read' : undefined;
+  }, [messages.length, readMarked]);
+
   if (!convoId) {
     return <Navigate to="/chat" replace />;
   }
@@ -133,10 +140,21 @@ export default function ChatThreadPage() {
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={otherMember?.avatar} alt={otherMember?.displayName || otherMember?.handle} />
+            <AvatarFallback>{otherMember?.handle?.[0]?.toUpperCase() ?? 'C'}</AvatarFallback>
+          </Avatar>
           <div className="flex flex-col">
-            <h1 className="text-lg font-semibold text-foreground">
-              {otherMember?.displayName || otherMember?.handle || 'Conversation'}
-            </h1>
+            <div className="flex items-center gap-1">
+              <h1 className="text-lg font-semibold text-foreground">
+                {otherMember?.displayName || otherMember?.handle || 'Conversation'}
+              </h1>
+              <VerifiedBadge
+                className="w-4 h-4 text-primary"
+                handle={otherMember?.handle}
+                verified={otherMember?.verified}
+              />
+            </div>
             <p className="text-xs text-muted-foreground">
               {otherMember?.handle ? `@${otherMember.handle}` : convoId}
             </p>
@@ -160,6 +178,7 @@ export default function ChatThreadPage() {
           hasMore={Boolean(cursor)}
           isLoadingMore={isLoadingMore}
           onLoadMore={() => fetchMessages(false)}
+          readStatusLabel={readStatusLabel}
         />
 
         <MessageComposer onSend={handleSend} isSending={isSending} />

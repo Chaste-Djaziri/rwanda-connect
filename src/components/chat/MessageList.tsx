@@ -11,6 +11,7 @@ interface MessageListProps {
   hasMore: boolean;
   isLoadingMore: boolean;
   onLoadMore: () => void;
+  readStatusLabel?: string;
 }
 
 export function MessageList({
@@ -20,6 +21,7 @@ export function MessageList({
   hasMore,
   isLoadingMore,
   onLoadMore,
+  readStatusLabel,
 }: MessageListProps) {
   if (isLoading) {
     return (
@@ -36,7 +38,7 @@ export function MessageList({
 
   return (
     <ScrollArea className="flex-1">
-      <div className="flex flex-col gap-4 px-6 py-4">
+      <div className="flex flex-col gap-4 px-6 py-6">
         {hasMore && (
           <div className="flex justify-center">
             <Button
@@ -61,6 +63,9 @@ export function MessageList({
             isOwn={message.senderDid === currentUserDid}
           />
         ))}
+        {messages.length > 0 && readStatusLabel && (
+          <div className="text-xs text-muted-foreground text-right">{readStatusLabel}</div>
+        )}
       </div>
     </ScrollArea>
   );
