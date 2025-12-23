@@ -54,7 +54,7 @@ export function BottomNav() {
 
 export function MobileMoreMenu() {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const normalizeHandle = (value?: string | null) => value?.replace(/^@/, '').toLowerCase();
   const activeProfileHandle = location.pathname.startsWith('/profile/')
     ? normalizeHandle(location.pathname.split('/')[2])
@@ -76,50 +76,87 @@ export function MobileMoreMenu() {
         <SheetHeader>
           <SheetTitle>Menu</SheetTitle>
         </SheetHeader>
-        <div className="mt-6 flex items-center gap-3">
-          <div className="h-12 w-12 rounded-full overflow-hidden bg-muted">
-            {user?.avatar ? (
-              <img
-                src={user.avatar}
-                alt={user.displayName || user.handle}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="h-full w-full flex items-center justify-center text-sm font-semibold text-muted-foreground">
-                {user?.handle?.[0]?.toUpperCase() ?? 'H'}
-              </div>
-            )}
-          </div>
-          <div>
-            <p className="font-semibold text-foreground">{user?.displayName || user?.handle || 'Hillside'}</p>
-            {user?.handle && <p className="text-xs text-muted-foreground">@{user.handle}</p>}
-          </div>
-        </div>
 
-        <nav className="mt-6 space-y-1">
-          {navItems.map((item) => {
-            const isProfileItem = item.path === '/profile';
-            const isActive = isProfileItem
-              ? location.pathname === '/profile' ||
-                (activeProfileHandle && currentUserHandle && activeProfileHandle === currentUserHandle)
-              : location.pathname === item.path;
-            const targetPath =
-              item.path === '/profile' && user?.handle ? `/profile/${user.handle}` : item.path;
-            return (
-              <Link
-                key={item.path}
-                to={targetPath}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm',
-                  isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+        {isAuthenticated ? (
+          <>
+            <div className="mt-6 flex items-center gap-3">
+              <div className="h-12 w-12 rounded-full overflow-hidden bg-muted">
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.displayName || user.handle}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-sm font-semibold text-muted-foreground">
+                    {user?.handle?.[0]?.toUpperCase() ?? 'H'}
+                  </div>
                 )}
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">
+                  {user?.displayName || user?.handle || 'Hillside'}
+                </p>
+                {user?.handle && <p className="text-xs text-muted-foreground">@{user.handle}</p>}
+              </div>
+            </div>
+
+            <nav className="mt-6 space-y-1">
+              {navItems.map((item) => {
+                const isProfileItem = item.path === '/profile';
+                const isActive = isProfileItem
+                  ? location.pathname === '/profile' ||
+                    (activeProfileHandle && currentUserHandle && activeProfileHandle === currentUserHandle)
+                  : location.pathname === item.path;
+                const targetPath =
+                  item.path === '/profile' && user?.handle ? `/profile/${user.handle}` : item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    to={targetPath}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm',
+                      isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </>
+        ) : (
+          <div className="mt-6 space-y-6">
+            <div className="flex items-center gap-3">
+              <img
+                src="/logo/dark-mode-logo.png"
+                alt="HiiSide"
+                className="h-auto w-auto max-h-10 max-w-10"
+              />
+              <div>
+                <p className="font-semibold text-foreground">Join the conversation</p>
+                <p className="text-xs text-muted-foreground">Create an account or sign in to continue.</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3">
+              <a
+                href="https://bsky.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full rounded-full bg-primary text-primary-foreground py-2.5 text-center text-sm font-semibold hover:bg-primary/90 transition-colors"
               >
-                <item.icon className="h-4 w-4" />
-                <span>{item.label}</span>
+                Create account
+              </a>
+              <Link
+                to="/auth"
+                className="w-full rounded-full border border-border py-2.5 text-center text-sm font-semibold text-foreground hover:bg-muted/40 transition-colors"
+              >
+                Sign in
               </Link>
-            );
-          })}
-        </nav>
+            </div>
+          </div>
+        )}
 
         <div className="mt-8 flex flex-wrap gap-3 text-xs text-muted-foreground">
           {policyLinks.map((link) => (
