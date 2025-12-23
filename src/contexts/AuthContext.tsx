@@ -74,6 +74,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } finally {
             setIsChatSessionLoading(false);
           }
+        } else {
+          const storedSession = atprotoClient.getStoredSession();
+          if (storedSession) {
+            setUser({
+              did: storedSession.did,
+              handle: storedSession.handle,
+            });
+          }
         }
       } catch (error) {
         console.error('Auth init error:', error);

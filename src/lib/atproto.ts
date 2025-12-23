@@ -26,18 +26,45 @@ class ATProtoClient {
     });
   }
 
-  async resumeSession(): Promise<boolean> {
+  private isTransientNetworkError(error: any): boolean {
+    const message = `${error?.message || ''} ${error?.cause?.message || ''}`.toLowerCase();
+    return (
+      message.includes('failed to fetch') ||
+      message.includes('network') ||
+      message.includes('err_network_changed')
+    );
+  }
+
+  private isAuthError(error: any): boolean {
+    const message = `${error?.message || ''}`.toLowerCase();
+    return error?.status === 401 || message.includes('authentication required');
+  }
+
+  getStoredSession(): AtpSessionData | null {
     try {
       const stored = localStorage.getItem('atproto_session');
-      if (!stored) return false;
-      
-      const sessionData: AtpSessionData = JSON.parse(stored);
+      if (!stored) return null;
+      return JSON.parse(stored) as AtpSessionData;
+    } catch (error) {
+      console.error('Failed to read stored session:', error);
+      return null;
+    }
+  }
+
+  async resumeSession(): Promise<boolean> {
+    try {
+      const sessionData = this.getStoredSession();
+      if (!sessionData) return false;
+
       await this.agent.resumeSession(sessionData);
       this.session = sessionData;
       return true;
     } catch (error) {
       console.error('Failed to resume session:', error);
-      localStorage.removeItem('atproto_session');
+      if (!this.isTransientNetworkError(error) && this.isAuthError(error)) {
+        this.session = null;
+        localStorage.removeItem('atproto_session');
+      }
       return false;
     }
   }
