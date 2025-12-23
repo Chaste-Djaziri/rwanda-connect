@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { MessageSquare } from 'lucide-react';
 import { CommentDialog } from '@/components/feed/CommentDialog';
 import { usePageMeta } from '@/lib/seo';
+import { MobileMoreMenu } from '@/components/layout/BottomNav';
 
 interface ThreadViewPost {
   post: any;
@@ -136,7 +137,8 @@ export default function PostDetailPage() {
   return (
     <AppLayout requireAuth={false}>
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
-        <div className="px-6 h-14 flex items-center">
+        <div className="px-6 h-14 flex items-center gap-3">
+          <MobileMoreMenu />
           <h1 className="font-semibold text-foreground text-lg">Post</h1>
         </div>
       </header>

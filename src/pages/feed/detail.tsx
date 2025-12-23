@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getSavedPosts, removeSavedPost, savePost, SavedPost } from '@/lib/savedPosts';
 import { usePageMeta } from '@/lib/seo';
+import { MobileMoreMenu } from '@/components/layout/BottomNav';
 
 function PostSkeleton() {
   return (
@@ -166,11 +167,14 @@ export default function FeedDetailPage() {
     <AppLayout requireAuth={false}>
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-6 h-14 flex items-center justify-between">
-          <div>
-            <h1 className="font-semibold text-foreground text-lg">{feedMeta?.name || 'Feed'}</h1>
-            {feedMeta?.description && (
-              <p className="text-xs text-muted-foreground line-clamp-1">{feedMeta.description}</p>
-            )}
+          <div className="flex items-center gap-3">
+            <MobileMoreMenu />
+            <div>
+              <h1 className="font-semibold text-foreground text-lg">{feedMeta?.name || 'Feed'}</h1>
+              {feedMeta?.description && (
+                <p className="text-xs text-muted-foreground line-clamp-1">{feedMeta.description}</p>
+              )}
+            </div>
           </div>
           <Button variant="ghost" size="sm" onClick={() => fetchFeed(true)}>
             Refresh

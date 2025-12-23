@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { getSavedPosts, removeSavedPost, SavedPost } from '@/lib/savedPosts';
 import { FeedPost, PostCard } from '@/components/feed/PostCard';
 import { usePageMeta } from '@/lib/seo';
+import { MobileMoreMenu } from '@/components/layout/BottomNav';
 
 export default function SavedPage() {
   usePageMeta({
@@ -37,9 +38,12 @@ export default function SavedPage() {
     <AppLayout>
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-6 h-14 flex items-center justify-between">
-          <div>
-            <h1 className="font-semibold text-foreground text-lg">Saved</h1>
-            <p className="text-xs text-muted-foreground">Posts you bookmarked</p>
+          <div className="flex items-center gap-3">
+            <MobileMoreMenu />
+            <div>
+              <h1 className="font-semibold text-foreground text-lg">Saved</h1>
+              <p className="text-xs text-muted-foreground">Posts you bookmarked</p>
+            </div>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setSavedPosts(getSavedPosts())}>
             Refresh

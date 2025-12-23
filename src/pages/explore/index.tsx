@@ -8,6 +8,7 @@ import { atprotoClient } from '@/lib/atproto';
 import { Compass, Search, TrendingUp, Users, RefreshCw } from 'lucide-react';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { usePageMeta } from '@/lib/seo';
+import { MobileMoreMenu } from '@/components/layout/BottomNav';
 
 interface SuggestedFeed {
   uri: string;
@@ -251,7 +252,10 @@ export default function ExplorePage() {
       {/* Header */}
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-4 h-14 flex items-center justify-between">
-          <h1 className="font-semibold text-foreground text-lg">Explore</h1>
+          <div className="flex items-center gap-3">
+            <MobileMoreMenu />
+            <h1 className="font-semibold text-foreground text-lg">Explore</h1>
+          </div>
           <Button
             variant="ghost"
             size="icon"

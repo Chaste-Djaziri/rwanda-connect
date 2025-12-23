@@ -62,75 +62,73 @@ export function MobileMoreMenu() {
   const currentUserHandle = normalizeHandle(user?.handle);
 
   return (
-    <div className="fixed left-4 top-4 z-50 lg:hidden">
-      <Sheet>
-        <SheetTrigger asChild>
-          <button
-            type="button"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background/90 text-foreground shadow-sm backdrop-blur"
-            aria-label="Open menu"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-80">
-          <SheetHeader>
-            <SheetTitle>Menu</SheetTitle>
-          </SheetHeader>
-          <div className="mt-6 flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full overflow-hidden bg-muted">
-              {user?.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt={user.displayName || user.handle}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="h-full w-full flex items-center justify-center text-sm font-semibold text-muted-foreground">
-                  {user?.handle?.[0]?.toUpperCase() ?? 'H'}
-                </div>
-              )}
-            </div>
-            <div>
-              <p className="font-semibold text-foreground">{user?.displayName || user?.handle || 'Hillside'}</p>
-              {user?.handle && <p className="text-xs text-muted-foreground">@{user.handle}</p>}
-            </div>
+    <Sheet>
+      <SheetTrigger asChild>
+        <button
+          type="button"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background/90 text-foreground shadow-sm backdrop-blur lg:hidden"
+          aria-label="Open menu"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-80">
+        <SheetHeader>
+          <SheetTitle>Menu</SheetTitle>
+        </SheetHeader>
+        <div className="mt-6 flex items-center gap-3">
+          <div className="h-12 w-12 rounded-full overflow-hidden bg-muted">
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.displayName || user.handle}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center text-sm font-semibold text-muted-foreground">
+                {user?.handle?.[0]?.toUpperCase() ?? 'H'}
+              </div>
+            )}
           </div>
-
-          <nav className="mt-6 space-y-1">
-            {navItems.map((item) => {
-              const isProfileItem = item.path === '/profile';
-              const isActive = isProfileItem
-                ? location.pathname === '/profile' ||
-                  (activeProfileHandle && currentUserHandle && activeProfileHandle === currentUserHandle)
-                : location.pathname === item.path;
-              const targetPath =
-                item.path === '/profile' && user?.handle ? `/profile/${user.handle}` : item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={targetPath}
-                  className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm',
-                    isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="mt-8 flex flex-wrap gap-3 text-xs text-muted-foreground">
-            {policyLinks.map((link) => (
-              <a key={link.label} href={link.href} className="hover:text-foreground">
-                {link.label}
-              </a>
-            ))}
+          <div>
+            <p className="font-semibold text-foreground">{user?.displayName || user?.handle || 'Hillside'}</p>
+            {user?.handle && <p className="text-xs text-muted-foreground">@{user.handle}</p>}
           </div>
-        </SheetContent>
-      </Sheet>
-    </div>
+        </div>
+
+        <nav className="mt-6 space-y-1">
+          {navItems.map((item) => {
+            const isProfileItem = item.path === '/profile';
+            const isActive = isProfileItem
+              ? location.pathname === '/profile' ||
+                (activeProfileHandle && currentUserHandle && activeProfileHandle === currentUserHandle)
+              : location.pathname === item.path;
+            const targetPath =
+              item.path === '/profile' && user?.handle ? `/profile/${user.handle}` : item.path;
+            return (
+              <Link
+                key={item.path}
+                to={targetPath}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm',
+                  isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <item.icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="mt-8 flex flex-wrap gap-3 text-xs text-muted-foreground">
+          {policyLinks.map((link) => (
+            <a key={link.label} href={link.href} className="hover:text-foreground">
+              {link.label}
+            </a>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -1,4 +1,5 @@
 import { AppLayout } from '@/components/layout/AppLayout';
+import { MobileMoreMenu } from '@/components/layout/BottomNav';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -69,7 +70,8 @@ export default function SettingsPage() {
     <AppLayout>
       {/* Header */}
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
-        <div className="px-4 h-14 flex items-center">
+        <div className="px-4 h-14 flex items-center gap-3">
+          <MobileMoreMenu />
           <h1 className="font-semibold text-foreground text-lg">Settings</h1>
         </div>
       </header>

@@ -9,6 +9,7 @@ import { getSavedPosts, removeSavedPost, savePost, SavedPost } from '@/lib/saved
 import { FeedPost, PostCard } from '@/components/feed/PostCard';
 import { usePageMeta } from '@/lib/seo';
 import { useAuth } from '@/contexts/AuthContext';
+import { MobileMoreMenu } from '@/components/layout/BottomNav';
 
 function PostSkeleton() {
   return (
@@ -161,7 +162,9 @@ export default function FeedPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-6 h-14 grid grid-cols-3 items-center">
-          <div />
+          <div className="flex items-center">
+            <MobileMoreMenu />
+          </div>
           <div className="flex justify-center">
             <img src="/logo/dark-mode-logo.png" alt="HiiSide" className="h-auto w-auto scale-125" />
           </div>

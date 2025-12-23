@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getSavedPosts, removeSavedPost, savePost, SavedPost } from '@/lib/savedPosts';
 import { FeedPost, PostCard } from '@/components/feed/PostCard';
 import { usePageMeta } from '@/lib/seo';
+import { MobileMoreMenu } from '@/components/layout/BottomNav';
 
 export default function HashtagPage() {
   const { tag } = useParams<{ tag: string }>();
@@ -126,7 +127,8 @@ export default function HashtagPage() {
   return (
     <AppLayout requireAuth={false}>
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
-        <div className="px-6 h-14 flex items-center">
+        <div className="px-6 h-14 flex items-center gap-3">
+          <MobileMoreMenu />
           <h1 className="font-semibold text-foreground text-lg">#{tag}</h1>
         </div>
       </header>

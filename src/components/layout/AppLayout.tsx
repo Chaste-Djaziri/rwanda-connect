@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LeftSidebar } from './LeftSidebar';
 import { RightSidebar } from './RightSidebar';
-import { BottomNav, MobileMoreMenu } from './BottomNav';
+import { BottomNav } from './BottomNav';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -38,7 +38,6 @@ export function AppLayout({ children, requireAuth = true }: AppLayoutProps) {
       <RightSidebar />
 
       {/* Mobile Bottom Nav */}
-      {isAuthenticated && <MobileMoreMenu />}
       {isAuthenticated && <BottomNav />}
     </div>
   );

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageMeta } from '@/lib/seo';
+import { MobileMoreMenu } from '@/components/layout/BottomNav';
 
 export default function ChatPage() {
   usePageMeta({
@@ -85,9 +86,12 @@ export default function ChatPage() {
     <AppLayout>
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-6 h-16 flex items-center justify-between">
-          <div>
+          <div className="flex items-center gap-3">
+            <MobileMoreMenu />
+            <div>
             <h1 className="text-lg font-semibold text-foreground">Chat</h1>
             <p className="text-sm text-muted-foreground">Direct messages on Bluesky</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Button

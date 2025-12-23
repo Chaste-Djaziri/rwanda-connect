@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Compass, Settings, Star, Users, Search, ChevronRight, Pin } from 'lucide-react';
 import { usePageMeta } from '@/lib/seo';
 import { useAuth } from '@/contexts/AuthContext';
+import { MobileMoreMenu } from '@/components/layout/BottomNav';
 
 
 type SavedFeedItem = {
@@ -277,6 +278,7 @@ export default function FeedsPage() {
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <MobileMoreMenu />
             <h1 className="font-semibold text-foreground text-lg">Feeds</h1>
           </div>
           <Button variant="ghost" size="icon">

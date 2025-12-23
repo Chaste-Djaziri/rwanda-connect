@@ -36,6 +36,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Switch } from '@/components/ui/switch';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { usePageMeta } from '@/lib/seo';
+import { MobileMoreMenu } from '@/components/layout/BottomNav';
 
 interface ProfileData {
   did: string;
@@ -870,6 +871,7 @@ export default function ProfilePage() {
       {/* Header */}
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-4 h-14 flex items-center gap-4">
+          <MobileMoreMenu />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1">
               <h1 className="font-semibold text-foreground truncate">

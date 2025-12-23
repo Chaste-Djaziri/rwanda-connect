@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { usePageMeta } from '@/lib/seo';
+import { MobileMoreMenu } from '@/components/layout/BottomNav';
 
 const mergeMessages = (existing: ChatMessage[], incoming: ChatMessage[]) => {
   const map = new Map<string, ChatMessage>();
@@ -144,11 +145,14 @@ export default function ChatThreadPage() {
     <AppLayout>
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-6 h-16 flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/chat" aria-label="Back to inbox">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <MobileMoreMenu />
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="/chat" aria-label="Back to inbox">
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
           <Avatar className="h-10 w-10">
             <AvatarImage src={otherMember?.avatar} alt={otherMember?.displayName || otherMember?.handle} />
             <AvatarFallback>{otherMember?.handle?.[0]?.toUpperCase() ?? 'C'}</AvatarFallback>
