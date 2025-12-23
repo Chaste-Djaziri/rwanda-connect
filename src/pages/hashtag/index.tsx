@@ -124,7 +124,7 @@ export default function HashtagPage() {
   }, [cursor, isLoading, isLoadingMore, fetchPosts]);
 
   return (
-    <AppLayout>
+    <AppLayout requireAuth={false}>
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-6 h-14 flex items-center">
           <h1 className="font-semibold text-foreground text-lg">#{tag}</h1>

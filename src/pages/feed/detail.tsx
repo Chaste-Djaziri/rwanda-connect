@@ -163,7 +163,7 @@ export default function FeedDetailPage() {
   }, [cursor, isLoading, isLoadingMore, fetchFeed]);
 
   return (
-    <AppLayout>
+    <AppLayout requireAuth={false}>
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-6 h-14 flex items-center justify-between">
           <div>

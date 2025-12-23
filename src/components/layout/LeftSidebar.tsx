@@ -80,6 +80,43 @@ export function LeftSidebar() {
     : null;
   const currentUserHandle = normalizeHandle(user?.handle);
 
+  if (!isAuthenticated) {
+    return (
+      <aside
+        className="fixed top-6 bottom-6 w-20 bg-transparent hidden lg:flex flex-col z-40 px-4 xl:w-72"
+        style={{ left: leftOffset }}
+      >
+        <div className="h-20 flex items-center px-3 xl:px-5">
+          <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center">
+            <img src="/logo/dark-mode-logo.png" alt="HiiSide" className="w-7 h-7" />
+          </div>
+        </div>
+        <div className="mt-6 px-3 xl:px-5">
+          <h2 className="text-lg font-semibold text-foreground">Join the conversation</h2>
+          <p className="text-sm text-muted-foreground mt-2">
+            Sign in or create an account to participate.
+          </p>
+        </div>
+        <div className="mt-6 px-3 xl:px-5 flex flex-col gap-3">
+          <a
+            href="https://bsky.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full rounded-full bg-primary text-primary-foreground py-2.5 text-center text-sm font-semibold hover:bg-primary/90 transition-colors"
+          >
+            Create account
+          </a>
+          <Link
+            to="/auth"
+            className="w-full rounded-full border border-border py-2.5 text-center text-sm font-semibold text-foreground hover:bg-muted/40 transition-colors"
+          >
+            Sign in
+          </Link>
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside
       className="fixed top-6 bottom-6 w-20 bg-transparent hidden lg:flex flex-col z-40 px-4 xl:w-72"

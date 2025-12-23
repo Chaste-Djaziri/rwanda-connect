@@ -577,14 +577,16 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       const targetHandle = handle?.replace(/^@/, '') || user?.handle;
-      if (!isAuthenticated || authLoading || !targetHandle) {
+      if (authLoading || !targetHandle) {
         setIsLoading(false);
         return;
       }
       setIsLoading(true);
       setError(null);
       try {
-        const result = await atprotoClient.getProfile(targetHandle);
+        const result = isAuthenticated
+          ? await atprotoClient.getProfile(targetHandle)
+          : await atprotoClient.getProfilePublic(targetHandle);
         if (result.success && result.data) {
           const verification = result.data.verification;
           const verifications = result.data.verifications;
@@ -607,14 +609,16 @@ export default function ProfilePage() {
             createdAt: result.data.createdAt,
             chatAllowIncoming: result.data.associated?.chat?.allowIncoming,
             verified: computedVerified,
-            viewer: {
-              blockedBy: result.data.viewer?.blockedBy,
-              blocking: result.data.viewer?.blocking,
-              muted: result.data.viewer?.muted,
-              following: result.data.viewer?.following,
-              followedBy: result.data.viewer?.followedBy,
-              activitySubscription: result.data.viewer?.activitySubscription,
-            },
+            viewer: isAuthenticated
+              ? {
+                  blockedBy: result.data.viewer?.blockedBy,
+                  blocking: result.data.viewer?.blocking,
+                  muted: result.data.viewer?.muted,
+                  following: result.data.viewer?.following,
+                  followedBy: result.data.viewer?.followedBy,
+                  activitySubscription: result.data.viewer?.activitySubscription,
+                }
+              : undefined,
           });
         } else {
           setError('Failed to load profile');
@@ -635,7 +639,20 @@ export default function ProfilePage() {
   }, [profile?.did, profile?.handle]);
 
   useEffect(() => {
-    if (!profile || authLoading || !isAuthenticated) return;
+    if (!profile || authLoading) return;
+    if (!isAuthenticated) {
+      setTabVisibility({
+        posts: true,
+        replies: false,
+        media: false,
+        videos: false,
+        likes: false,
+        feeds: false,
+        starterPacks: false,
+        lists: false,
+      });
+      return;
+    }
     if (isBlocked) {
       setTabVisibility({
         posts: false,
@@ -849,7 +866,7 @@ export default function ProfilePage() {
   }, [activeTab, tabData, fetchTabData, isBlocked]);
 
   return (
-    <AppLayout>
+    <AppLayout requireAuth={false}>
       {/* Header */}
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-4 h-14 flex items-center gap-4">
@@ -904,7 +921,7 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-            {!isLoading && profile && !isOwnProfile && (
+            {!isLoading && profile && !isOwnProfile && isAuthenticated && (
               <div className="flex items-center gap-2">
                 {isBlocked && profile.viewer?.blocking && (
                   <Button variant="outline" onClick={handleToggleBlock}>

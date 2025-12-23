@@ -7,6 +7,7 @@ import { RefreshCw } from 'lucide-react';
 import { getSavedPosts, removeSavedPost, savePost, SavedPost } from '@/lib/savedPosts';
 import { FeedPost, PostCard } from '@/components/feed/PostCard';
 import { usePageMeta } from '@/lib/seo';
+import { useAuth } from '@/contexts/AuthContext';
 
 function PostSkeleton() {
   return (
@@ -32,6 +33,7 @@ function PostSkeleton() {
 }
 
 export default function FeedPage() {
+  const { isAuthenticated } = useAuth();
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
   const [pinnedFeeds, setPinnedFeeds] = useState<
@@ -79,6 +81,32 @@ export default function FeedPage() {
 
   const fetchPinnedFeeds = useCallback(async () => {
     try {
+      if (!isAuthenticated) {
+        const discoverFeedUri =
+          'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot';
+        const suggested = await atprotoClient.getSuggestedFeedsPublic(undefined, 5);
+        const items = [
+          {
+            id: 'feed:discover',
+            type: 'feed',
+            value: discoverFeedUri,
+            label: 'Discover',
+          },
+          ...(suggested.success && suggested.data
+            ? suggested.data.map((feed: any) => ({
+                id: `feed:${feed.uri}`,
+                type: 'feed',
+                value: feed.uri,
+                label: feed.displayName || 'Feed',
+                avatar: feed.avatar,
+              }))
+            : []),
+        ];
+        setPinnedFeeds(items);
+        setActiveFeed((prev) => prev ?? { id: items[0].id, type: items[0].type, value: items[0].value });
+        return;
+      }
+
       const prefsResult = await atprotoClient.getPreferences();
       const prefs = prefsResult.success && prefsResult.data ? prefsResult.data : [];
       const savedPref = prefs.find(
@@ -140,7 +168,7 @@ export default function FeedPage() {
       setPinnedFeeds([]);
       setActiveFeed({ id: 'timeline:following', type: 'timeline', value: 'following' });
     }
-  }, [activeFeed]);
+  }, [activeFeed, isAuthenticated]);
 
   const fetchFeed = useCallback(
     async (refresh = false) => {
@@ -159,7 +187,11 @@ export default function FeedPage() {
           activeFeed.type === 'timeline'
             ? await atprotoClient.getTimeline(refresh ? undefined : cursor, 30)
             : activeFeed.type === 'feed'
-              ? await atprotoClient.getFeed(activeFeed.value, refresh ? undefined : cursor, 30)
+              ? await atprotoClient.getFeed(
+                  activeFeed.value,
+                  refresh ? undefined : cursor,
+                  30
+                )
               : { success: false };
         if (result.success && result.data) {
           const feedPosts: FeedPost[] = result.data.map((item: any) => ({
@@ -236,7 +268,7 @@ export default function FeedPage() {
   }, [cursor, isLoading, isLoadingMore, isRefreshing, fetchFeed]);
 
   return (
-    <AppLayout>
+    <AppLayout requireAuth={false}>
       {/* Header */}
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-6 h-14 grid grid-cols-3 items-center">

@@ -247,7 +247,7 @@ export default function ExplorePage() {
   }, [searchQuery, defaultActors]);
 
   return (
-    <AppLayout>
+    <AppLayout requireAuth={false}>
       {/* Header */}
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-4 h-14 flex items-center justify-between">

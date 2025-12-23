@@ -692,7 +692,32 @@ class ATProtoClient {
         cursor: response.data.cursor,
       };
     } catch (error: any) {
+      if (error?.status === 401 || error?.message?.includes('Authentication Required')) {
+        return await this.getFeedPublic(feed, cursor, limit);
+      }
       console.error('Get feed error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getFeedPublic(feed: string, cursor?: string, limit: number = 30) {
+    try {
+      const params = new URLSearchParams();
+      params.set('feed', feed);
+      params.set('limit', String(limit));
+      if (cursor) params.set('cursor', cursor);
+      const response = await fetch(`${PUBLIC_API}/xrpc/app.bsky.feed.getFeed?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const data = await response.json();
+      return {
+        success: true,
+        data: data.feed,
+        cursor: data.cursor,
+      };
+    } catch (error: any) {
+      console.error('Get feed public error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -711,7 +736,33 @@ class ATProtoClient {
         cursor: response.data.cursor,
       };
     } catch (error: any) {
+      if (error?.status === 401 || error?.message?.includes('Authentication Required')) {
+        return await this.searchPostsByTagPublic(tag, cursor, limit);
+      }
       console.error('Search posts error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async searchPostsByTagPublic(tag: string, cursor?: string, limit: number = 30) {
+    try {
+      const params = new URLSearchParams();
+      params.set('q', `#${tag}`);
+      params.set('tag', tag);
+      params.set('limit', String(limit));
+      if (cursor) params.set('cursor', cursor);
+      const response = await fetch(`${PUBLIC_API}/xrpc/app.bsky.feed.searchPosts?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const data = await response.json();
+      return {
+        success: true,
+        data: data.posts,
+        cursor: data.cursor,
+      };
+    } catch (error: any) {
+      console.error('Search posts public error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -725,7 +776,28 @@ class ATProtoClient {
       });
       return { success: true, data: response.data.thread };
     } catch (error: any) {
+      if (error?.status === 401 || error?.message?.includes('Authentication Required')) {
+        return await this.getPostThreadPublic(uri, depth, parentHeight);
+      }
       console.error('Get post thread error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getPostThreadPublic(uri: string, depth: number = 3, parentHeight: number = 2) {
+    try {
+      const params = new URLSearchParams();
+      params.set('uri', uri);
+      params.set('depth', String(depth));
+      params.set('parentHeight', String(parentHeight));
+      const response = await fetch(`${PUBLIC_API}/xrpc/app.bsky.feed.getPostThread?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const data = await response.json();
+      return { success: true, data: data.thread };
+    } catch (error: any) {
+      console.error('Get post thread public error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -735,7 +807,26 @@ class ATProtoClient {
       const response = await this.agent.com.atproto.identity.resolveHandle({ handle });
       return { success: true, data: response.data };
     } catch (error: any) {
+      if (error?.status === 401 || error?.message?.includes('Authentication Required')) {
+        return await this.resolveHandlePublic(handle);
+      }
       console.error('Resolve handle error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async resolveHandlePublic(handle: string) {
+    try {
+      const url = new URL('https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle');
+      url.searchParams.set('handle', handle);
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error: any) {
+      console.error('Resolve handle public error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -759,7 +850,38 @@ class ATProtoClient {
       });
       return { success: true, data: response.data.feed, cursor: response.data.cursor };
     } catch (error: any) {
+      if (error?.status === 401 || error?.message?.includes('Authentication Required')) {
+        return await this.getAuthorFeedPublic(actor, filter, cursor, limit);
+      }
       console.error('Get author feed error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getAuthorFeedPublic(
+    actor: string,
+    filter:
+      | 'posts_with_replies'
+      | 'posts_no_replies'
+      | 'posts_with_media'
+      | 'posts_and_author_threads',
+    cursor?: string,
+    limit: number = 30
+  ) {
+    try {
+      const params = new URLSearchParams();
+      params.set('actor', actor);
+      params.set('limit', String(limit));
+      if (filter) params.set('filter', filter);
+      if (cursor) params.set('cursor', cursor);
+      const response = await fetch(`${PUBLIC_API}/xrpc/app.bsky.feed.getAuthorFeed?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const data = await response.json();
+      return { success: true, data: data.feed, cursor: data.cursor };
+    } catch (error: any) {
+      console.error('Get author feed public error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -870,7 +992,26 @@ class ATProtoClient {
       const response = await this.agent.app.bsky.feed.getFeedGenerators({ feeds: uris });
       return { success: true, data: response.data.feeds };
     } catch (error: any) {
+      if (error?.status === 401 || error?.message?.includes('Authentication Required')) {
+        return await this.getFeedGeneratorsPublic(uris);
+      }
       console.error('Get feed generators error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getFeedGeneratorsPublic(uris: string[]) {
+    try {
+      const params = new URLSearchParams();
+      uris.forEach((uri) => params.append('feeds', uri));
+      const response = await fetch(`${PUBLIC_API}/xrpc/app.bsky.feed.getFeedGenerators?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const data = await response.json();
+      return { success: true, data: data.feeds };
+    } catch (error: any) {
+      console.error('Get feed generators public error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -959,7 +1100,31 @@ class ATProtoClient {
         cursor: response.data.cursor,
       };
     } catch (error: any) {
+      if (error?.status === 401 || error?.message?.includes('Authentication Required')) {
+        return await this.getSuggestedFeedsPublic(cursor, limit);
+      }
       console.error('Get suggested feeds error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getSuggestedFeedsPublic(cursor?: string, limit: number = 30) {
+    try {
+      const params = new URLSearchParams();
+      params.set('limit', String(limit));
+      if (cursor) params.set('cursor', cursor);
+      const response = await fetch(`${PUBLIC_API}/xrpc/app.bsky.feed.getSuggestedFeeds?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const data = await response.json();
+      return {
+        success: true,
+        data: data.feeds,
+        cursor: data.cursor,
+      };
+    } catch (error: any) {
+      console.error('Get suggested feeds public error:', error);
       return { success: false, error: error.message };
     }
   }

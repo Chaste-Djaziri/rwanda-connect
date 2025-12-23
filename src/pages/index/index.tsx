@@ -36,9 +36,9 @@ export default function Index() {
           </div>
           
           {!isLoading && (
-            <Link to={isAuthenticated ? "/feed" : "/auth"}>
+            <Link to="/feed">
               <Button variant="outline" size="sm">
-                {isAuthenticated ? "Go to Feed" : "Sign In"}
+                {isAuthenticated ? "Go to Feed" : "View Feed"}
               </Button>
             </Link>
           )}
@@ -67,7 +67,7 @@ export default function Index() {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <Link to={isAuthenticated ? "/feed" : "/auth"}>
+              <Link to="/feed">
                 <Button variant="brand" size="xl">
                   {isAuthenticated ? "Open Feed" : "Get Started"}
                   <ArrowRight className="w-5 h-5" />

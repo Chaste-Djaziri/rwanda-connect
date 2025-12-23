@@ -6,9 +6,10 @@ import { BottomNav } from './BottomNav';
 
 interface AppLayoutProps {
   children: React.ReactNode;
+  requireAuth?: boolean;
 }
 
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children, requireAuth = true }: AppLayoutProps) {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -19,7 +20,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (requireAuth && !isAuthenticated) {
     return <Navigate to="/auth" replace />;
   }
 
@@ -37,7 +38,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <RightSidebar />
 
       {/* Mobile Bottom Nav */}
-      <BottomNav />
+      {isAuthenticated && <BottomNav />}
     </div>
   );
 }
