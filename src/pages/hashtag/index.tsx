@@ -13,7 +13,7 @@ export default function HashtagPage() {
   const { tag } = useParams<{ tag: string }>();
   usePageMeta({
     title: tag ? `#${tag}` : 'Hashtag',
-    description: tag ? `Posts tagged #${tag} on HiiSide.` : 'Hashtag posts on HiiSide.',
+    description: tag ? `Posts tagged #${tag} on HillSide.` : 'Hashtag posts on HillSide.',
   });
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [savedUris, setSavedUris] = useState<Set<string>>(new Set());

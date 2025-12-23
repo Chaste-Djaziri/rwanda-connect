@@ -6,7 +6,7 @@ const NotFound = () => {
   const location = useLocation();
   usePageMeta({
     title: "404",
-    description: "Page not found on HiiSide.",
+    description: "Page not found on HillSide.",
   });
 
   useEffect(() => {

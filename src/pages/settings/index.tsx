@@ -59,7 +59,7 @@ export default function SettingsPage() {
   const { user, logout } = useAuth();
   usePageMeta({
     title: 'Settings',
-    description: 'Manage your HiiSide preferences and account settings.',
+    description: 'Manage your HillSide preferences and account settings.',
   });
 
   const handleLogout = async () => {

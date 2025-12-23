@@ -89,7 +89,7 @@ export function LeftSidebar() {
         <div className="h-20 flex items-center px-3 xl:px-5">
           <img
             src="/logo/dark-mode-logo.png"
-            alt="HiiSide"
+            alt="HillSide"
             className="h-auto w-auto max-h-10 max-w-10"
           />
         </div>

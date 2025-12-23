@@ -1,4 +1,4 @@
-const CACHE_NAME = "hiiside-v1";
+const CACHE_NAME = "HillSide-v1";
 const APP_SHELL = [
   "/",
   "/index.html",

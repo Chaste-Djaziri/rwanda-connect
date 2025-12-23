@@ -121,7 +121,7 @@ export default function PostDetailPage() {
 
   const postDescription = useMemo(() => {
     const text = rootPost?.record?.text?.trim();
-    if (!text) return 'Post on HiiSide.';
+    if (!text) return 'Post on HillSide.';
     return text.length > 140 ? `${text.slice(0, 137)}...` : text;
   }, [rootPost]);
 

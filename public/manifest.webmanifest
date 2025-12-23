@@ -1,6 +1,6 @@
 {
-  "name": "HiiSide",
-  "short_name": "HiiSide",
+  "name": "HillSide",
+  "short_name": "HillSide",
   "description": "A decentralized social platform built on the AT Protocol.",
   "start_url": "/feed",
   "scope": "/",

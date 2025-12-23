@@ -66,7 +66,7 @@ const forwardEmojiRequest = async (req: IncomingMessage, res: ServerResponse, ur
   const response = await fetch(target.toString(), {
     method: 'GET',
     headers: {
-      'User-Agent': 'HiiSideBot/1.0 (+https://hillside.micorp.pro)',
+      'User-Agent': 'HillSideBot/1.0 (+https://hillside.micorp.pro)',
       Accept: req.headers.accept ?? '*/*',
     },
   });
@@ -193,7 +193,7 @@ const applyMetaToHtml = (html: string, meta: PageMeta) => {
   next = upsertMeta(next, 'property="og:description"', meta.description);
   next = upsertMeta(next, 'property="og:url"', meta.url);
   next = upsertMeta(next, 'property="og:type"', meta.type);
-  next = upsertMeta(next, 'property="og:site_name"', 'HiiSide');
+  next = upsertMeta(next, 'property="og:site_name"', 'HillSide');
   next = upsertMeta(next, 'name="twitter:title"', meta.title);
   next = upsertMeta(next, 'name="twitter:description"', meta.description);
   next = upsertMeta(next, 'name="twitter:card"', meta.twitterCard);
@@ -256,7 +256,7 @@ const resolveStaticPath = (root: string, pathname: string) => {
 const fetchJson = async <T>(url: string): Promise<T | null> => {
   try {
     const response = await fetch(url, {
-      headers: { 'User-Agent': 'HiiSideBot/1.0 (+https://hillside.micorp.pro)' },
+      headers: { 'User-Agent': 'HillSideBot/1.0 (+https://hillside.micorp.pro)' },
     });
     if (!response.ok) return null;
     return (await response.json()) as T;
@@ -291,9 +291,9 @@ const getEmbedImage = (embed: any): string | undefined => {
 const buildDefaultMeta = (pathname: string): PageMeta => {
   const url = `${SITE_URL.replace(/\/$/, '')}${pathname}`;
   return {
-    title: 'HiiSide - Decentralized Social Platform',
+    title: 'HillSide - Decentralized Social Platform',
     description:
-      'HiiSide is a decentralized social platform built on the AT Protocol. Own your data, build community, and connect through an open, federated network.',
+      'HillSide is a decentralized social platform built on the AT Protocol. Own your data, build community, and connect through an open, federated network.',
     url,
     image: DEFAULT_OG_IMAGE,
     type: 'website',
@@ -309,7 +309,7 @@ const buildProfileMeta = async (handle: string, pathname: string): Promise<PageM
   const titleBase = profile?.displayName || `@${profile?.handle ?? cleanedHandle}`;
   const description = profile?.description
     ? truncateText(profile.description, 200)
-    : `@${profile?.handle ?? cleanedHandle} on HiiSide.`;
+    : `@${profile?.handle ?? cleanedHandle} on HillSide.`;
   const url = `${SITE_URL.replace(/\/$/, '')}${pathname}`;
   return {
     title: titleBase,
@@ -351,7 +351,7 @@ const buildPostMeta = async (
   const authorName = post.author?.displayName ?? `@${authorHandle}`;
   const description = post.record?.text
     ? truncateText(String(post.record.text), 200)
-    : `Post by @${authorHandle} on HiiSide.`;
+    : `Post by @${authorHandle} on HillSide.`;
   const image = getEmbedImage(post.embed) ?? post.author?.avatar ?? DEFAULT_OG_IMAGE;
   const url = `${SITE_URL.replace(/\/$/, '')}${pathname}`;
   return {
@@ -378,8 +378,8 @@ const buildMetaForPath = async (pathname: string): Promise<PageMeta> => {
     const tag = decodeURIComponent(hashtagMatch[1]);
     const url = `${SITE_URL.replace(/\/$/, '')}${pathname}`;
     return {
-      title: `#${tag} on HiiSide`,
-      description: `Latest posts tagged #${tag} on HiiSide.`,
+      title: `#${tag} on HillSide`,
+      description: `Latest posts tagged #${tag} on HillSide.`,
       url,
       image: DEFAULT_OG_IMAGE,
       type: 'website',

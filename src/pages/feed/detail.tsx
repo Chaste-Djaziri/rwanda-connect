@@ -45,7 +45,7 @@ export default function FeedDetailPage() {
 
   usePageMeta({
     title: feedMeta?.name || 'Feed',
-    description: feedMeta?.description || 'Explore a curated feed on HiiSide.',
+    description: feedMeta?.description || 'Explore a curated feed on HillSide.',
   });
 
   useEffect(() => {

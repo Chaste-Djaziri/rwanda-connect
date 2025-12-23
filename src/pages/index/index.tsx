@@ -9,7 +9,7 @@ export default function Index() {
   usePageMeta({
     title: 'Welcome',
     description:
-      'HiiSide is a decentralized social platform built on the AT Protocol. Own your data, build community, and connect through an open network.',
+      'HillSide is a decentralized social platform built on the AT Protocol. Own your data, build community, and connect through an open network.',
   });
 
   return (
@@ -31,10 +31,10 @@ export default function Index() {
           <div className="flex items-center gap-3">
             <img
               src="/logo/dark-mode-logo.png"
-              alt="HiiSide"
+              alt="HillSide"
               className="h-auto w-auto max-h-8 max-w-8"
             />
-            <span className="text-xl font-semibold text-foreground">HiiSide</span>
+            <span className="text-xl font-semibold text-foreground">HillSide</span>
           </div>
           
           {!isLoading && (
@@ -141,7 +141,7 @@ export default function Index() {
       <footer className="relative z-10 border-t border-border py-8">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2025 HiiSide. Built with AT Protocol.
+            © 2025 HillSide. Built with AT Protocol.
           </p>
           <div className="flex items-center gap-6">
             <a 

@@ -139,7 +139,7 @@ function ExploreSkeleton() {
 export default function ExplorePage() {
   usePageMeta({
     title: 'Explore',
-    description: 'Discover people and feeds across HiiSide.',
+    description: 'Discover people and feeds across HillSide.',
   });
   const [activeTab, setActiveTab] = useState<'feeds' | 'people'>('feeds');
   const [feeds, setFeeds] = useState<SuggestedFeed[]>([]);

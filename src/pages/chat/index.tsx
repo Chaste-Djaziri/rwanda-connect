@@ -14,7 +14,7 @@ import { MobileMoreMenu } from '@/components/layout/BottomNav';
 export default function ChatPage() {
   usePageMeta({
     title: 'Chat',
-    description: 'Direct messages with your connections on HiiSide.',
+    description: 'Direct messages with your connections on HillSide.',
   });
   const location = useLocation();
   const navigate = useNavigate();

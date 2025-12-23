@@ -131,7 +131,7 @@ export function MobileMoreMenu() {
             <div className="flex items-center gap-3">
               <img
                 src="/logo/dark-mode-logo.png"
-                alt="HiiSide"
+                alt="HillSide"
                 className="h-auto w-auto max-h-10 max-w-10"
               />
               <div>

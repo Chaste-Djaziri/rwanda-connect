@@ -49,7 +49,7 @@ export default function FeedPage() {
 
   usePageMeta({
     title: 'Discover',
-    description: 'Discover the latest posts on HiiSide.',
+    description: 'Discover the latest posts on HillSide.',
   });
 
   useEffect(() => {
@@ -168,7 +168,7 @@ export default function FeedPage() {
           <div className="flex justify-center">
             <img
               src="/logo/dark-mode-logo.png"
-              alt="HiiSide"
+              alt="HillSide"
               className="h-auto w-auto max-h-6 max-w-6"
             />
           </div>

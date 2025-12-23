@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const SITE_NAME = 'HiiSide';
+const SITE_NAME = 'HillSide';
 const TITLE_SUFFIX = `— ${SITE_NAME}`;
 
 const setMetaTag = (selector: string, content: string) => {

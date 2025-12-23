@@ -6,7 +6,7 @@ export default function ProfileRedirect() {
   const { user } = useAuth();
   usePageMeta({
     title: 'Profile',
-    description: 'Your profile on HiiSide.',
+    description: 'Your profile on HillSide.',
   });
   if (!user?.handle) {
     return <Navigate to="/auth" replace />;

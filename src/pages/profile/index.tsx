@@ -328,7 +328,7 @@ export default function ProfilePage() {
         : false;
   usePageMeta({
     title: profile?.displayName || (profile?.handle ? `@${profile.handle}` : 'Profile'),
-    description: profile?.description || 'Profile on HiiSide.',
+    description: profile?.description || 'Profile on HillSide.',
   });
   const availableTabs = useMemo(
     () => (isBlocked ? [] : tabConfig.filter((tab) => tabVisibility[tab.key])),

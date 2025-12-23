@@ -120,7 +120,7 @@ export default function ChatThreadPage() {
 
   usePageMeta({
     title: otherMember?.displayName || otherMember?.handle || 'Chat',
-    description: 'Direct message thread on HiiSide.',
+    description: 'Direct message thread on HillSide.',
   });
 
   const readStatusLabel = useMemo(() => {

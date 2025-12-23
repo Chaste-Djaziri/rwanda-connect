@@ -127,7 +127,7 @@ export default function FeedsPage() {
   const { isAuthenticated } = useAuth();
   usePageMeta({
     title: 'Feeds',
-    description: 'Browse and manage your pinned feeds on HiiSide.',
+    description: 'Browse and manage your pinned feeds on HillSide.',
   });
   const [savedFeeds, setSavedFeeds] = useState<SavedFeedItem[]>([]);
   const [savedFeedDetails, setSavedFeedDetails] = useState<Record<string, FeedGenerator>>({});

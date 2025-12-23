@@ -29,7 +29,7 @@ export default function AuthPage() {
   const { login, isAuthenticated, isLoading: authLoading, switchAccount, logout } = useAuth();
   usePageMeta({
     title: 'Sign in',
-    description: 'Sign in to HiiSide with your Bluesky handle and app password.',
+    description: 'Sign in to HillSide with your Bluesky handle and app password.',
   });
   
   const [identifier, setIdentifier] = useState('');
@@ -171,10 +171,10 @@ export default function AuthPage() {
           {/* Logo and Title */}
           <div className="text-center mb-10">
             <div className="inline-flex items-center justify-center mb-6">
-              <img src="/logo/dark-mode-logo.png" alt="HiiSide" className="h-auto w-auto scale-150" />
+              <img src="/logo/dark-mode-logo.png" alt="HillSide" className="h-auto w-auto scale-150" />
             </div>
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              HiiSide
+              HillSide
             </h1>
             <p className="text-muted-foreground">
               A modern, decentralized social platform
