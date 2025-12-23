@@ -12,7 +12,6 @@ interface MessageListProps {
   hasMore: boolean;
   isLoadingMore: boolean;
   onLoadMore: () => void;
-  readStatusLabel?: string;
   forceScrollToken?: string;
 }
 
@@ -23,7 +22,6 @@ export function MessageList({
   hasMore,
   isLoadingMore,
   onLoadMore,
-  readStatusLabel,
   forceScrollToken,
 }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -102,9 +100,6 @@ export function MessageList({
               isOwn={message.senderDid === currentUserDid}
             />
           ))}
-          {messages.length > 0 && readStatusLabel && (
-            <div className="text-xs text-muted-foreground text-right">{readStatusLabel}</div>
-          )}
         </div>
       </div>
       {!isAtBottom && (

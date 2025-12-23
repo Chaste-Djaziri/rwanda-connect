@@ -187,7 +187,6 @@ export default function ChatThreadPage() {
           hasMore={Boolean(cursor)}
           isLoadingMore={isLoadingMore}
           onLoadMore={() => fetchMessages(false)}
-          readStatusLabel={readStatusLabel}
           forceScrollToken={scrollToken}
         />
 
