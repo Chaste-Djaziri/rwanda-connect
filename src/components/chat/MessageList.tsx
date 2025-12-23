@@ -77,7 +77,7 @@ export function MessageList({
         onScroll={handleScroll}
         className="h-full overflow-y-auto"
       >
-        <div className="flex flex-col gap-4 px-6 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+        <div className="flex flex-col gap-4 px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           {hasMore && (
             <div className="flex justify-center">
               <Button
@@ -108,7 +108,7 @@ export function MessageList({
         </div>
       </div>
       {!isAtBottom && (
-        <div className="pointer-events-none absolute bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-0 right-0 flex justify-center">
+        <div className="pointer-events-none absolute bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-0 right-0 flex justify-center">
           <Button
             type="button"
             size="sm"

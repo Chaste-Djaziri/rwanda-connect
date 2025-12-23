@@ -8,9 +8,15 @@ interface AppLayoutProps {
   children: React.ReactNode;
   requireAuth?: boolean;
   hideBottomNav?: boolean;
+  disableBottomPadding?: boolean;
 }
 
-export function AppLayout({ children, requireAuth = true, hideBottomNav = false }: AppLayoutProps) {
+export function AppLayout({
+  children,
+  requireAuth = true,
+  hideBottomNav = false,
+  disableBottomPadding = false,
+}: AppLayoutProps) {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -31,7 +37,11 @@ export function AppLayout({ children, requireAuth = true, hideBottomNav = false 
       <LeftSidebar />
 
       {/* Main Content - Center Column */}
-      <main className="min-h-screen border-x border-border pb-16 lg:pb-0 mx-auto w-full lg:max-w-2xl xl:w-[35vw] xl:max-w-[35vw]">
+      <main
+        className={`min-h-screen border-x border-border mx-auto w-full lg:max-w-2xl xl:w-[35vw] xl:max-w-[35vw] ${
+          disableBottomPadding ? 'pb-0' : 'pb-16 lg:pb-0'
+        }`}
+      >
         {children}
       </main>
 

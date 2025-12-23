@@ -141,7 +141,7 @@ export default function ChatThreadPage() {
   }
 
   return (
-    <AppLayout hideBottomNav>
+    <AppLayout hideBottomNav disableBottomPadding>
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">
         <div className="px-6 h-16 flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
