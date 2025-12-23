@@ -33,6 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { atprotoClient } from '@/lib/atproto';
 import { toast } from '@/components/ui/sonner';
+import { CommentDialog } from '@/components/feed/CommentDialog';
 
 export interface FeedPost {
   uri: string;
@@ -51,6 +52,10 @@ export interface FeedPost {
   repostCount: number;
   likeCount: number;
   embed?: any;
+  viewer?: {
+    like?: string;
+    repost?: string;
+  };
 }
 
 const hashtagRegex = /#[A-Za-z0-9_]+/g;
@@ -540,6 +545,14 @@ export function PostCard({
   const [isListsLoading, setIsListsLoading] = useState(false);
   const [listsError, setListsError] = useState<string | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [likeCount, setLikeCount] = useState(post.likeCount);
+  const [repostCount, setRepostCount] = useState(post.repostCount);
+  const [replyCount, setReplyCount] = useState(post.replyCount);
+  const [isLiked, setIsLiked] = useState(Boolean(post.viewer?.like));
+  const [isReposted, setIsReposted] = useState(Boolean(post.viewer?.repost));
+  const [likeUri, setLikeUri] = useState(post.viewer?.like);
+  const [repostUri, setRepostUri] = useState(post.viewer?.repost);
   const timeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -559,6 +572,16 @@ export function PostCard({
   const handle = post.author.handle;
   const postId = post.uri.split('/').pop() ?? '';
   const isOwnPost = Boolean(user?.did && user.did === post.author.did);
+
+  useEffect(() => {
+    setLikeCount(post.likeCount);
+    setRepostCount(post.repostCount);
+    setReplyCount(post.replyCount);
+    setIsLiked(Boolean(post.viewer?.like));
+    setIsReposted(Boolean(post.viewer?.repost));
+    setLikeUri(post.viewer?.like);
+    setRepostUri(post.viewer?.repost);
+  }, [post.uri, post.likeCount, post.repostCount, post.replyCount, post.viewer?.like, post.viewer?.repost]);
 
   useEffect(() => {
     if (!interactionOpen) return;
@@ -648,6 +671,87 @@ export function PostCard({
     setInteractionOpen(false);
   };
 
+  const handleToggleSave = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onToggleSave(post);
+    toast(isSaved ? 'Removed from saved posts' : 'Post saved');
+  };
+
+  const handleLike = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (!user) {
+      toast('Sign in to like posts');
+      return;
+    }
+    if (isActionLoading) return;
+    setIsActionLoading(true);
+    try {
+      if (isLiked && likeUri) {
+        const result = await atprotoClient.deleteLike(likeUri);
+        if (result.success) {
+          setIsLiked(false);
+          setLikeUri(undefined);
+          setLikeCount((prev) => Math.max(0, prev - 1));
+          toast('Like removed');
+        } else {
+          toast(result.error || 'Failed to remove like');
+        }
+      } else {
+        const result = await atprotoClient.likePost(post.uri, post.cid);
+        if (result.success && result.uri) {
+          setIsLiked(true);
+          setLikeUri(result.uri);
+          setLikeCount((prev) => prev + 1);
+          toast('Post liked');
+        } else {
+          toast(result.error || 'Failed to like post');
+        }
+      }
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleRepost = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (!user) {
+      toast('Sign in to repost');
+      return;
+    }
+    if (isActionLoading) return;
+    setIsActionLoading(true);
+    try {
+      if (isReposted && repostUri) {
+        const result = await atprotoClient.deleteRepost(repostUri);
+        if (result.success) {
+          setIsReposted(false);
+          setRepostUri(undefined);
+          setRepostCount((prev) => Math.max(0, prev - 1));
+          toast('Repost removed');
+        } else {
+          toast(result.error || 'Failed to remove repost');
+        }
+      } else {
+        const result = await atprotoClient.repostPost(post.uri, post.cid);
+        if (result.success && result.uri) {
+          setIsReposted(true);
+          setRepostUri(result.uri);
+          setRepostCount((prev) => prev + 1);
+          toast('Post reposted');
+        } else {
+          toast(result.error || 'Failed to repost');
+        }
+      }
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleOpenReply = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    setCommentOpen(true);
+  };
+
   const handleCardClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
     if (target.closest('button') || target.closest('a')) return;
@@ -687,10 +791,18 @@ export function PostCard({
         <div className="flex-1 min-w-0">
           {/* Header */}
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="font-semibold text-foreground truncate">
+            <Link
+              to={`/profile/${post.author.handle}`}
+              className="font-semibold text-foreground truncate hover:underline"
+            >
               {post.author.displayName || post.author.handle}
-            </span>
-            <span className="text-muted-foreground text-sm truncate">@{post.author.handle}</span>
+            </Link>
+            <Link
+              to={`/profile/${post.author.handle}`}
+              className="text-muted-foreground text-sm truncate hover:underline"
+            >
+              @{post.author.handle}
+            </Link>
             <span className="text-muted-foreground text-sm">·</span>
             <time className="text-muted-foreground text-sm shrink-0">
               {timeAgo(post.record.createdAt)}
@@ -898,21 +1010,41 @@ export function PostCard({
 
           {/* Actions */}
           <div className="flex items-center gap-6 -ml-2 mt-3">
-            <button className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors p-2 rounded-full hover:bg-primary/10">
+            <button
+              type="button"
+              onClick={handleOpenReply}
+              className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors p-2 rounded-full hover:bg-primary/10"
+            >
               <MessageSquare className="w-4 h-4" />
-              <span className="text-sm">{post.replyCount || ''}</span>
-            </button>
-            <button className="flex items-center gap-2 text-muted-foreground hover:text-success transition-colors p-2 rounded-full hover:bg-success/10">
-              <Repeat2 className="w-4 h-4" />
-              <span className="text-sm">{post.repostCount || ''}</span>
-            </button>
-            <button className="flex items-center gap-2 text-muted-foreground hover:text-destructive transition-colors p-2 rounded-full hover:bg-destructive/10">
-              <Heart className="w-4 h-4" />
-              <span className="text-sm">{post.likeCount || ''}</span>
+              <span className="text-sm">{replyCount || ''}</span>
             </button>
             <button
               type="button"
-              onClick={() => onToggleSave(post)}
+              onClick={handleRepost}
+              className={`flex items-center gap-2 p-2 rounded-full transition-colors ${
+                isReposted
+                  ? 'text-success bg-success/10'
+                  : 'text-muted-foreground hover:text-success hover:bg-success/10'
+              }`}
+            >
+              <Repeat2 className="w-4 h-4" />
+              <span className="text-sm">{repostCount || ''}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleLike}
+              className={`flex items-center gap-2 p-2 rounded-full transition-colors ${
+                isLiked
+                  ? 'text-destructive bg-destructive/10'
+                  : 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'
+              }`}
+            >
+              <Heart className="w-4 h-4" fill={isLiked ? 'currentColor' : 'none'} />
+              <span className="text-sm">{likeCount || ''}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleSave}
               className={`flex items-center gap-2 p-2 rounded-full transition-colors ${
                 isSaved
                   ? 'text-primary bg-primary/10'
@@ -925,6 +1057,12 @@ export function PostCard({
           </div>
         </div>
       </div>
+      <CommentDialog
+        open={commentOpen}
+        onOpenChange={setCommentOpen}
+        post={post}
+        onSubmitted={() => setReplyCount((prev) => prev + 1)}
+      />
     </article>
   );
 }

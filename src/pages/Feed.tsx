@@ -96,6 +96,10 @@ export default function FeedPage() {
             repostCount: item.post.repostCount ?? 0,
             likeCount: item.post.likeCount ?? 0,
             embed: item.post.embed,
+            viewer: {
+              like: item.post.viewer?.like,
+              repost: item.post.viewer?.repost,
+            },
           }));
 
           if (refresh) {

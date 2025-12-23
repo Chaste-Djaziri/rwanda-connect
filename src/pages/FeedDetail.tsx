@@ -112,6 +112,10 @@ export default function FeedDetailPage() {
             repostCount: item.post.repostCount ?? 0,
             likeCount: item.post.likeCount ?? 0,
             embed: item.post.embed,
+            viewer: {
+              like: item.post.viewer?.like,
+              repost: item.post.viewer?.repost,
+            },
           }));
           setPosts((prev) => (refresh ? mapped : [...prev, ...mapped]));
           setCursor(feedResult.cursor);

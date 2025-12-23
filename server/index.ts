@@ -196,6 +196,24 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === 'POST' && pathname === '/api/chat/convo/availability') {
+      const session = requireSession(req, res);
+      if (!session) return;
+      const chatAgent = getChatAgent(session);
+      const body = await readJsonBody<{ members?: string[] }>(req);
+
+      if (!body.members || !Array.isArray(body.members) || body.members.length === 0) {
+        sendJson(res, 400, { error: 'Members list is required.' });
+        return;
+      }
+
+      const response = await chatAgent.chat.bsky.convo.getConvoAvailability({
+        members: body.members,
+      });
+      sendJson(res, 200, response.data);
+      return;
+    }
+
     if (req.method === 'GET' && pathname === '/api/chat/messages') {
       const session = requireSession(req, res);
       if (!session) return;

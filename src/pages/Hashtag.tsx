@@ -68,6 +68,10 @@ export default function HashtagPage() {
             repostCount: post.repostCount ?? 0,
             likeCount: post.likeCount ?? 0,
             embed: post.embed,
+            viewer: {
+              like: post.viewer?.like,
+              repost: post.viewer?.repost,
+            },
           }));
 
           if (refresh) {

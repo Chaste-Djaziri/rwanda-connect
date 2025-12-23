@@ -173,6 +173,17 @@ export const chatApi = {
       body: JSON.stringify({ convoId }),
     });
   },
+
+  async getConvoAvailability(members: string[]) {
+    const data = await request<{ canChat: boolean; convo?: any }>(`/convo/availability`, {
+      method: 'POST',
+      body: JSON.stringify({ members }),
+    });
+    return {
+      canChat: data.canChat,
+      convo: data.convo ? normalizeConvo(data.convo) : undefined,
+    };
+  },
 };
 
 export const resolveHandleToDid = async (handle: string) => {

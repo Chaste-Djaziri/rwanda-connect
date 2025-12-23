@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -44,7 +45,15 @@ function FeedCard({ feed }: { feed: SuggestedFeed }) {
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-foreground truncate">{feed.displayName}</h3>
-          <p className="text-sm text-muted-foreground truncate">by @{feed.creator.handle}</p>
+          <p className="text-sm text-muted-foreground truncate">
+            by{' '}
+            <Link
+              to={`/profile/${feed.creator.handle}`}
+              className="hover:text-foreground transition-colors"
+            >
+              @{feed.creator.handle}
+            </Link>
+          </p>
           {feed.description && (
             <p className="text-sm text-foreground/80 mt-1 line-clamp-2">{feed.description}</p>
           )}
@@ -61,7 +70,7 @@ function FeedCard({ feed }: { feed: SuggestedFeed }) {
 
 function ActorCard({ actor }: { actor: SuggestedActor }) {
   return (
-    <div className="p-4 border-b border-border hover:bg-muted/30 transition-colors">
+    <Link to={`/profile/${actor.handle}`} className="block p-4 border-b border-border hover:bg-muted/30 transition-colors">
       <div className="flex gap-3">
         <div className="w-12 h-12 rounded-full overflow-hidden bg-muted shrink-0">
           {actor.avatar ? (
@@ -91,7 +100,7 @@ function ActorCard({ actor }: { actor: SuggestedActor }) {
           )}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -114,8 +123,10 @@ export default function ExplorePage() {
   const [activeTab, setActiveTab] = useState<'feeds' | 'people'>('feeds');
   const [feeds, setFeeds] = useState<SuggestedFeed[]>([]);
   const [actors, setActors] = useState<SuggestedActor[]>([]);
+  const [defaultActors, setDefaultActors] = useState<SuggestedActor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -151,16 +162,16 @@ export default function ExplorePage() {
       // Fetch suggested people
       const actorsResult = await atprotoClient.getSuggestions();
       if (actorsResult.success && actorsResult.data) {
-        setActors(
-          actorsResult.data.map((actor: any) => ({
-            did: actor.did,
-            handle: actor.handle,
-            displayName: actor.displayName,
-            description: actor.description,
-            avatar: actor.avatar,
-            followersCount: actor.followersCount,
-          }))
-        );
+        const mappedActors = actorsResult.data.map((actor: any) => ({
+          did: actor.did,
+          handle: actor.handle,
+          displayName: actor.displayName,
+          description: actor.description,
+          avatar: actor.avatar,
+          followersCount: actor.followersCount,
+        }));
+        setActors(mappedActors);
+        setDefaultActors(mappedActors);
       }
     } catch (err) {
       setError('Failed to load explore content');
@@ -174,33 +185,43 @@ export default function ExplorePage() {
     fetchExploreData(true);
   }, []);
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await atprotoClient.searchActors(searchQuery);
-      if (result.success && result.data) {
-        setActors(
-          result.data.map((actor: any) => ({
-            did: actor.did,
-            handle: actor.handle,
-            displayName: actor.displayName,
-            description: actor.description,
-            avatar: actor.avatar,
-            followersCount: actor.followersCount,
-          }))
-        );
-        setActiveTab('people');
-      }
-    } catch (err) {
-      setError('Search failed');
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      setIsSearching(false);
+      setActors(defaultActors);
+      return;
     }
-  };
+    let active = true;
+    setIsSearching(true);
+    const timeout = setTimeout(async () => {
+      try {
+        const result = await atprotoClient.searchActors(query);
+        if (!active) return;
+        if (result.success && result.data) {
+          setActors(
+            result.data.map((actor: any) => ({
+              did: actor.did,
+              handle: actor.handle,
+              displayName: actor.displayName,
+              description: actor.description,
+              avatar: actor.avatar,
+              followersCount: actor.followersCount,
+            }))
+          );
+          setActiveTab('people');
+        }
+      } catch {
+        if (active) setError('Search failed');
+      } finally {
+        if (active) setIsSearching(false);
+      }
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [searchQuery, defaultActors]);
 
   return (
     <AppLayout>
@@ -228,11 +249,10 @@ export default function ExplorePage() {
                 placeholder="Search people..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 className="pl-10"
               />
             </div>
-            <Button variant="outline" onClick={handleSearch} disabled={isLoading}>
+            <Button variant="outline" disabled>
               Search
             </Button>
           </div>
@@ -282,7 +302,7 @@ export default function ExplorePage() {
           </div>
         )}
 
-        {isLoading ? (
+        {isLoading || isSearching ? (
           <div>
             {[...Array(6)].map((_, i) => (
               <ExploreSkeleton key={i} />

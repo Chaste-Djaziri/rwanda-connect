@@ -1,13 +1,39 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Calendar, List, Sparkles, TrendingUp } from 'lucide-react';
+import {
+  Calendar,
+  BellPlus,
+  Copy,
+  List,
+  ListPlus,
+  MessageSquare,
+  MoreHorizontal,
+  Search,
+  Shield,
+  ShieldOff,
+  Sparkles,
+  TrendingUp,
+  UserMinus,
+  UserPlus,
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { FeedPost, PostCard } from '@/components/feed/PostCard';
 import { getSavedPosts, removeSavedPost, savePost, SavedPost } from '@/lib/savedPosts';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { toast } from '@/components/ui/sonner';
+import { chatApi } from '@/lib/chat';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 
 interface ProfileData {
   did: string;
@@ -20,6 +46,18 @@ interface ProfileData {
   followsCount: number;
   postsCount: number;
   createdAt?: string;
+  chatAllowIncoming?: string;
+  viewer?: {
+    blockedBy?: boolean;
+    blocking?: string;
+    muted?: boolean;
+    following?: string;
+    followedBy?: string;
+    activitySubscription?: {
+      post: boolean;
+      reply: boolean;
+    };
+  };
 }
 
 type TabKey =
@@ -79,7 +117,19 @@ const mapFeedItem = (item: any): FeedPost => ({
   repostCount: item.post.repostCount ?? 0,
   likeCount: item.post.likeCount ?? 0,
   embed: item.post.embed,
+  viewer: {
+    like: item.post.viewer?.like,
+    repost: item.post.viewer?.repost,
+  },
 });
+
+const hasVideoEmbed = (embed: any) => {
+  if (!embed) return false;
+  const type = embed.$type || '';
+  if (type.includes('video')) return true;
+  if (embed.media?.$type?.includes('video')) return true;
+  return false;
+};
 
 function PostSkeleton() {
   return (
@@ -229,8 +279,9 @@ function ListCard({ list }: { list: any }) {
 }
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, hasChatSession, isChatSessionLoading } = useAuth();
   const { handle } = useParams<{ handle: string }>();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -239,6 +290,14 @@ export default function ProfilePage() {
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [pinningFeedUri, setPinningFeedUri] = useState<string | null>(null);
   const [pinnedFeedUris, setPinnedFeedUris] = useState<Set<string>>(new Set());
+  const [canMessage, setCanMessage] = useState(false);
+  const [isChatChecking, setIsChatChecking] = useState(false);
+  const [isOpeningChat, setIsOpeningChat] = useState(false);
+  const [hasExistingConvo, setHasExistingConvo] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [activityPost, setActivityPost] = useState(false);
+  const [activityReply, setActivityReply] = useState(false);
+  const [activitySaving, setActivitySaving] = useState(false);
   const [tabVisibility, setTabVisibility] = useState<Record<TabKey, boolean>>({
     posts: true,
     replies: false,
@@ -251,9 +310,20 @@ export default function ProfilePage() {
   });
   const [tabData, setTabData] = useState<Record<TabKey, TabState<any>>>(createInitialTabState);
   const isOwnProfile = profile?.handle && user?.handle && profile.handle === user.handle;
+  const isBlocked = Boolean(profile?.viewer?.blocking || profile?.viewer?.blockedBy);
+  const isMuted = Boolean(profile?.viewer?.muted);
+  const isFollowing = Boolean(profile?.viewer?.following);
+  const isFollowedBy = Boolean(profile?.viewer?.followedBy);
+  const allowIncoming = profile?.chatAllowIncoming;
+  const showMessageIcon =
+    allowIncoming === 'all'
+      ? true
+      : allowIncoming === 'following'
+        ? isFollowedBy
+        : false;
   const availableTabs = useMemo(
-    () => tabConfig.filter((tab) => tabVisibility[tab.key]),
-    [tabVisibility]
+    () => (isBlocked ? [] : tabConfig.filter((tab) => tabVisibility[tab.key])),
+    [tabVisibility, isBlocked]
   );
 
   useEffect(() => {
@@ -290,6 +360,198 @@ export default function ProfilePage() {
     });
   }, []);
 
+  const profileUrl = profile?.handle ? `${window.location.origin}/profile/${profile.handle}` : '';
+
+  const handleCopyProfile = async () => {
+    if (!profileUrl) return;
+    try {
+      await navigator.clipboard.writeText(profileUrl);
+      toast('Profile link copied');
+    } catch {
+      toast('Failed to copy link');
+    }
+  };
+
+  const handleToggleBlock = async () => {
+    if (!profile) return;
+    if (profile.viewer?.blocking) {
+      const result = await atprotoClient.unblockActor(profile.viewer.blocking);
+      if (result.success) {
+        toast('Account unblocked');
+        const refreshed = await atprotoClient.getProfile(profile.handle);
+        if (refreshed.success && refreshed.data) {
+          setProfile((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  viewer: {
+                    blockedBy: refreshed.data.viewer?.blockedBy,
+                    blocking: refreshed.data.viewer?.blocking,
+                    muted: refreshed.data.viewer?.muted,
+                  },
+                }
+              : prev
+          );
+        }
+      } else {
+        toast(result.error || 'Failed to unblock');
+      }
+      return;
+    }
+    const result = await atprotoClient.blockActor(profile.did);
+    if (result.success) {
+      toast('Account blocked');
+      const refreshed = await atprotoClient.getProfile(profile.handle);
+      if (refreshed.success && refreshed.data) {
+        setProfile((prev) =>
+          prev
+            ? {
+                ...prev,
+                viewer: {
+                  blockedBy: refreshed.data.viewer?.blockedBy,
+                  blocking: refreshed.data.viewer?.blocking,
+                  muted: refreshed.data.viewer?.muted,
+                },
+              }
+            : prev
+        );
+      }
+    } else {
+      toast(result.error || 'Failed to block');
+    }
+  };
+
+  const handleToggleMute = async () => {
+    if (!profile) return;
+    if (profile.viewer?.muted) {
+      const result = await atprotoClient.unmuteActor(profile.did);
+      if (result.success) {
+        toast('Account unmuted');
+        setProfile((prev) => (prev ? { ...prev, viewer: { ...prev.viewer, muted: false } } : prev));
+      } else {
+        toast(result.error || 'Failed to unmute');
+      }
+      return;
+    }
+    const result = await atprotoClient.muteActor(profile.did);
+    if (result.success) {
+      toast('Account muted');
+      setProfile((prev) => (prev ? { ...prev, viewer: { ...prev.viewer, muted: true } } : prev));
+    } else {
+      toast(result.error || 'Failed to mute');
+    }
+  };
+
+  const handleToggleFollow = async () => {
+    if (!profile) return;
+    if (isFollowing && profile.viewer?.following) {
+      const result = await atprotoClient.unfollowActor(profile.viewer.following);
+      if (result.success) {
+        toast('Unfollowed');
+        setProfile((prev) =>
+          prev ? { ...prev, viewer: { ...prev.viewer, following: undefined } } : prev
+        );
+      } else {
+        toast(result.error || 'Failed to unfollow');
+      }
+      return;
+    }
+    const result = await atprotoClient.followActor(profile.did);
+    if (result.success && result.uri) {
+      toast('Following');
+      setProfile((prev) =>
+        prev ? { ...prev, viewer: { ...prev.viewer, following: result.uri } } : prev
+      );
+    } else {
+      toast(result.error || 'Failed to follow');
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    const checkAvailability = async () => {
+      if (!profile?.did || isOwnProfile || isBlocked) {
+        setCanMessage(false);
+        return;
+      }
+      if (!hasChatSession || isChatSessionLoading) {
+        setCanMessage(false);
+        return;
+      }
+      if (allowIncoming === 'none') {
+        setCanMessage(false);
+        setHasExistingConvo(false);
+        return;
+      }
+      setIsChatChecking(true);
+      try {
+        const result = await chatApi.getConvoAvailability([profile.did]);
+        if (active) {
+          const hasConvo = Boolean(result.convo);
+          setHasExistingConvo(hasConvo);
+          setCanMessage(result.canChat || hasConvo);
+        }
+      } catch {
+        if (active) {
+          setCanMessage(false);
+          setHasExistingConvo(false);
+        }
+      } finally {
+        if (active) setIsChatChecking(false);
+      }
+    };
+    checkAvailability();
+    return () => {
+      active = false;
+    };
+  }, [profile?.did, isOwnProfile, isBlocked, hasChatSession, isChatSessionLoading, allowIncoming, isFollowedBy]);
+
+  useEffect(() => {
+    if (!activityOpen) return;
+    const subscription = profile?.viewer?.activitySubscription;
+    setActivityPost(subscription?.post ?? false);
+    setActivityReply(subscription?.reply ?? false);
+  }, [activityOpen, profile?.viewer?.activitySubscription]);
+
+  const handleOpenChat = async () => {
+    if (!profile?.did) return;
+    if (!hasChatSession || isChatSessionLoading) {
+      toast('Open chat after starting a chat session');
+      return;
+    }
+    if (isOpeningChat) return;
+    setIsOpeningChat(true);
+    try {
+      const convoResult = await chatApi.getConvoForMembers([profile.did]);
+      navigate(`/chat/${convoResult.convo.id}`);
+    } catch (error: any) {
+      toast(error?.message || 'Unable to open chat');
+    } finally {
+      setIsOpeningChat(false);
+    }
+  };
+
+  const handleSaveActivity = async () => {
+    if (!profile?.did) return;
+    setActivitySaving(true);
+    const result = await atprotoClient.putActivitySubscription(profile.did, {
+      post: activityPost,
+      reply: activityReply,
+    });
+    if (result.success) {
+      toast('Notification settings saved');
+      setProfile((prev) =>
+        prev
+          ? { ...prev, viewer: { ...prev.viewer, activitySubscription: { post: activityPost, reply: activityReply } } }
+          : prev
+      );
+      setActivityOpen(false);
+    } else {
+      toast(result.error || 'Failed to save settings');
+    }
+    setActivitySaving(false);
+  };
+
   useEffect(() => {
     if (availableTabs.length === 0) return;
     if (!availableTabs.find((tab) => tab.key === activeTab)) {
@@ -320,6 +582,15 @@ export default function ProfilePage() {
             followsCount: result.data.followsCount ?? 0,
             postsCount: result.data.postsCount ?? 0,
             createdAt: result.data.createdAt,
+            chatAllowIncoming: result.data.associated?.chat?.allowIncoming,
+            viewer: {
+              blockedBy: result.data.viewer?.blockedBy,
+              blocking: result.data.viewer?.blocking,
+              muted: result.data.viewer?.muted,
+              following: result.data.viewer?.following,
+              followedBy: result.data.viewer?.followedBy,
+              activitySubscription: result.data.viewer?.activitySubscription,
+            },
           });
         } else {
           setError('Failed to load profile');
@@ -341,6 +612,19 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!profile || authLoading || !isAuthenticated) return;
+    if (isBlocked) {
+      setTabVisibility({
+        posts: false,
+        replies: false,
+        media: false,
+        videos: false,
+        likes: false,
+        feeds: false,
+        starterPacks: false,
+        lists: false,
+      });
+      return;
+    }
     if (isOwnProfile) {
       setTabVisibility({
         posts: true,
@@ -380,7 +664,7 @@ export default function ProfilePage() {
             result = await atprotoClient.getAuthorFeed(actor, 'posts_with_media', undefined, 1);
             break;
           case 'videos':
-            result = await atprotoClient.getAuthorFeed(actor, 'posts_with_video', undefined, 1);
+            result = await atprotoClient.getAuthorFeed(actor, 'posts_with_media', undefined, 10);
             break;
           case 'likes':
             result = await atprotoClient.getActorLikes(actor, undefined, 1);
@@ -399,7 +683,12 @@ export default function ProfilePage() {
         }
         if (!isActive) return;
         if (result?.success && Array.isArray(result.data) && result.data.length > 0) {
-          setTabVisibility((prev) => ({ ...prev, [tab]: true }));
+          if (tab === 'videos') {
+            const hasVideo = result.data.some((item: any) => hasVideoEmbed(item.post?.embed));
+            setTabVisibility((prev) => ({ ...prev, [tab]: hasVideo }));
+          } else {
+            setTabVisibility((prev) => ({ ...prev, [tab]: true }));
+          }
         }
       } catch (err) {
         if (!isActive) return;
@@ -413,7 +702,7 @@ export default function ProfilePage() {
     return () => {
       isActive = false;
     };
-  }, [profile?.did, profile?.handle, profile?.postsCount, isOwnProfile, authLoading, isAuthenticated]);
+  }, [profile?.did, profile?.handle, profile?.postsCount, isOwnProfile, authLoading, isAuthenticated, isBlocked]);
 
   const fetchTabData = useCallback(
     async (tab: TabKey, refresh = false) => {
@@ -439,7 +728,7 @@ export default function ProfilePage() {
             result = await atprotoClient.getAuthorFeed(actor, 'posts_with_media', cursor, 30);
             break;
           case 'videos':
-            result = await atprotoClient.getAuthorFeed(actor, 'posts_with_video', cursor, 30);
+            result = await atprotoClient.getAuthorFeed(actor, 'posts_with_media', cursor, 30);
             break;
           case 'likes':
             result = await atprotoClient.getActorLikes(actor, cursor, 30);
@@ -461,7 +750,9 @@ export default function ProfilePage() {
           const mapped =
             tab === 'feeds' || tab === 'starterPacks' || tab === 'lists'
               ? result.data
-              : result.data.map((item: any) => mapFeedItem(item));
+              : result.data
+                  .filter((item: any) => (tab === 'videos' ? hasVideoEmbed(item.post?.embed) : true))
+                  .map((item: any) => mapFeedItem(item));
           setTabData((prev) => ({
             ...prev,
             [tab]: {
@@ -506,13 +797,15 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
+    if (isBlocked) return;
     if (!profile || !tabVisibility[activeTab]) return;
     if (tabData[activeTab].isLoading) return;
     if (tabData[activeTab].hasLoaded) return;
     fetchTabData(activeTab, true);
-  }, [activeTab, profile?.did, profile?.handle, tabVisibility, tabData, fetchTabData]);
+  }, [activeTab, profile?.did, profile?.handle, tabVisibility, tabData, fetchTabData, isBlocked]);
 
   useEffect(() => {
+    if (isBlocked) return;
     const node = loadMoreRef.current;
     const currentTab = tabData[activeTab];
     if (!node || !currentTab.cursor) return;
@@ -529,7 +822,7 @@ export default function ProfilePage() {
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [activeTab, tabData, fetchTabData]);
+  }, [activeTab, tabData, fetchTabData, isBlocked]);
 
   return (
     <AppLayout>
@@ -551,7 +844,7 @@ export default function ProfilePage() {
 
       <div className="animate-fade-in">
         {/* Banner */}
-        <div className="h-32 sm:h-48 bg-gradient-to-br from-primary/30 to-accent/20 relative">
+        <div className={`h-32 sm:h-48 bg-gradient-to-br from-primary/30 to-accent/20 relative ${isBlocked ? 'blur-lg' : ''}`}>
           {profile?.banner && (
             <img 
               src={profile.banner} 
@@ -565,7 +858,7 @@ export default function ProfilePage() {
         <div className="px-4 pb-6">
           {/* Avatar */}
           <div className="relative -mt-16 mb-4 flex justify-between items-end">
-            <div className="w-28 h-28 rounded-full border-4 border-background overflow-hidden bg-muted">
+            <div className={`w-28 h-28 rounded-full border-4 border-background overflow-hidden bg-muted ${isBlocked ? 'blur-md' : ''}`}>
               {isLoading ? (
                 <Skeleton className="w-full h-full rounded-full" />
               ) : profile?.avatar ? (
@@ -580,6 +873,116 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+            {!isLoading && profile && !isOwnProfile && (
+              <div className="flex items-center gap-2">
+                {isBlocked && profile.viewer?.blocking && (
+                  <Button variant="outline" onClick={handleToggleBlock}>
+                    Unblock
+                  </Button>
+                )}
+                {!isBlocked && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setActivityOpen(true)}
+                    aria-label="Keep me posted"
+                  >
+                    <BellPlus className="w-4 h-4" />
+                  </Button>
+                )}
+                {!isBlocked && (showMessageIcon || hasExistingConvo) && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleOpenChat}
+                    disabled={!hasChatSession || isChatSessionLoading || isOpeningChat}
+                    aria-label="Message"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                  </Button>
+                )}
+                {!isBlocked && (
+                  <Button
+                    variant={isFollowing ? 'outline' : 'default'}
+                    onClick={handleToggleFollow}
+                  >
+                    {isFollowing ? 'Following' : 'Follow'}
+                  </Button>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="w-5 h-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleCopyProfile}>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy profile link
+                    </DropdownMenuItem>
+                    {!isBlocked && (
+                      <DropdownMenuItem onClick={handleToggleBlock}>
+                        <ShieldOff className="w-4 h-4 mr-2" />
+                        Block account
+                      </DropdownMenuItem>
+                    )}
+                    {profile.viewer?.blocking && (
+                      <DropdownMenuItem onClick={handleToggleBlock}>
+                        <Shield className="w-4 h-4 mr-2" />
+                        Unblock account
+                      </DropdownMenuItem>
+                    )}
+                    {!isBlocked && (
+                      <DropdownMenuItem onClick={handleToggleFollow}>
+                        {isFollowing ? (
+                          <>
+                            <UserMinus className="w-4 h-4 mr-2" />
+                            Unfollow account
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Follow account
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        if (!profile?.did) return;
+                        const result = await atprotoClient.reportAccount(profile.did);
+                        toast(result.success ? 'Profile reported' : result.error || 'Report failed');
+                      }}
+                    >
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Report profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        profile?.handle &&
+                        window.open(
+                          `https://bsky.app/search?q=from:${profile.handle}`,
+                          '_blank',
+                          'noopener,noreferrer'
+                        )
+                      }
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Search posts
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toast('Add to lists coming soon')}>
+                      <ListPlus className="w-4 h-4 mr-2" />
+                      Add to lists
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toast('Add to starter pack coming soon')}>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Add to starter pack
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
           </div>
 
           {/* Name and Handle */}
@@ -597,13 +1000,19 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {!isLoading && !isBlocked && isMuted && (
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-muted/30 px-3 py-1 text-xs font-semibold text-muted-foreground">
+              Muted account
+            </div>
+          )}
+
           {/* Stats */}
           {isLoading ? (
             <div className="flex gap-6 mb-4">
               <Skeleton className="h-5 w-24" />
               <Skeleton className="h-5 w-24" />
             </div>
-          ) : (
+          ) : isBlocked ? null : (
             <div className="flex gap-6 mb-4">
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
@@ -632,6 +1041,10 @@ export default function ProfilePage() {
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-3/4" />
             </div>
+          ) : isBlocked ? (
+            <div className="mb-4 rounded-xl border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+              This profile is blocked. Bio hidden.
+            </div>
           ) : profile?.description ? (
             <p className="text-foreground mb-4 whitespace-pre-wrap leading-relaxed">
               {profile.description}
@@ -646,166 +1059,215 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Tabs */}
-          <div className="mt-6 border-b border-border/60">
-            <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-muted-foreground sm:text-sm sm:grid-cols-4 md:grid-cols-8">
-              {availableTabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                  className={`py-3 border-b-2 transition-colors ${
-                    activeTab === tab.key
-                      ? 'border-primary text-foreground'
-                      : 'border-transparent hover:text-foreground'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+          {isBlocked ? (
+            <div className="mt-6 rounded-2xl border border-border bg-muted/30 p-6 text-sm text-muted-foreground text-center space-y-4">
+              <p>Posts hidden.</p>
+              {profile?.viewer?.blocking && (
+                <Button variant="outline" onClick={handleToggleBlock}>
+                  Unblock account
+                </Button>
+              )}
             </div>
-          </div>
-
-          <div className="py-6">
-            {availableTabs.length === 0 && (
-              <div className="text-center text-sm text-muted-foreground">
-                No public content available.
+          ) : (
+            <>
+              {/* Tabs */}
+              <div className="mt-6 border-b border-border/60">
+                <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-muted-foreground sm:text-sm sm:grid-cols-4 md:grid-cols-8">
+                  {availableTabs.map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setActiveTab(tab.key as typeof activeTab)}
+                      className={`py-3 border-b-2 transition-colors ${
+                        activeTab === tab.key
+                          ? 'border-primary text-foreground'
+                          : 'border-transparent hover:text-foreground'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            )}
 
-            {availableTabs.length > 0 && (
-              <div>
-                {(activeTab === 'posts' ||
-                  activeTab === 'replies' ||
-                  activeTab === 'media' ||
-                  activeTab === 'videos' ||
-                  activeTab === 'likes') && (
+              <div className="py-6">
+                {availableTabs.length === 0 && (
+                  <div className="text-center text-sm text-muted-foreground">
+                    No public content available.
+                  </div>
+                )}
+
+                {availableTabs.length > 0 && (
                   <div>
-                    {tabData[activeTab].isLoading && tabData[activeTab].items.length === 0 && (
-                      <>
-                        {[...Array(3)].map((_, i) => (
-                          <PostSkeleton key={`profile-post-${i}`} />
-                        ))}
-                      </>
-                    )}
+                    {(activeTab === 'posts' ||
+                      activeTab === 'replies' ||
+                      activeTab === 'media' ||
+                      activeTab === 'videos' ||
+                      activeTab === 'likes') && (
+                      <div>
+                        {tabData[activeTab].isLoading && tabData[activeTab].items.length === 0 && (
+                          <>
+                            {[...Array(3)].map((_, i) => (
+                              <PostSkeleton key={`profile-post-${i}`} />
+                            ))}
+                          </>
+                        )}
 
-                    {tabData[activeTab].items.length === 0 && !tabData[activeTab].isLoading && (
-                      <div className="text-center text-sm text-muted-foreground py-6">
-                        No posts to show yet.
+                        {tabData[activeTab].items.length === 0 && !tabData[activeTab].isLoading && (
+                          <div className="text-center text-sm text-muted-foreground py-6">
+                            No posts to show yet.
+                          </div>
+                        )}
+
+                        {tabData[activeTab].items.length > 0 && (
+                          <div>
+                            {(tabData[activeTab].items as FeedPost[]).map((post) => (
+                              <PostCard
+                                key={post.uri}
+                                post={post}
+                                isSaved={savedUris.has(post.uri)}
+                                onToggleSave={toggleSave}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
 
-                    {tabData[activeTab].items.length > 0 && (
+                    {activeTab === 'feeds' && (
                       <div>
-                        {(tabData[activeTab].items as FeedPost[]).map((post) => (
-                          <PostCard
-                            key={post.uri}
-                            post={post}
-                            isSaved={savedUris.has(post.uri)}
-                            onToggleSave={toggleSave}
+                        {tabData.feeds.isLoading && tabData.feeds.items.length === 0 && (
+                          <>
+                            {[...Array(3)].map((_, i) => (
+                              <PostSkeleton key={`profile-feed-${i}`} />
+                            ))}
+                          </>
+                        )}
+                        {tabData.feeds.items.length === 0 && !tabData.feeds.isLoading && (
+                          <div className="text-center text-sm text-muted-foreground py-6">
+                            No feeds available.
+                          </div>
+                        )}
+                        {tabData.feeds.items.map((feed: any) => (
+                          <FeedCard
+                            key={feed.uri}
+                            feed={feed}
+                            onPin={handlePinFeed}
+                            isPinning={pinningFeedUri === feed.uri}
+                            isPinned={pinnedFeedUris.has(feed.uri)}
                           />
                         ))}
                       </div>
                     )}
-                  </div>
-                )}
 
-                {activeTab === 'feeds' && (
-                  <div>
-                    {tabData.feeds.isLoading && tabData.feeds.items.length === 0 && (
-                      <>
-                        {[...Array(3)].map((_, i) => (
-                          <PostSkeleton key={`profile-feed-${i}`} />
+                    {activeTab === 'starterPacks' && (
+                      <div>
+                        {tabData.starterPacks.isLoading && tabData.starterPacks.items.length === 0 && (
+                          <>
+                            {[...Array(3)].map((_, i) => (
+                              <PostSkeleton key={`profile-pack-${i}`} />
+                            ))}
+                          </>
+                        )}
+                        {tabData.starterPacks.items.length === 0 && !tabData.starterPacks.isLoading && (
+                          <div className="text-center text-sm text-muted-foreground py-6">
+                            No starter packs available.
+                          </div>
+                        )}
+                        {tabData.starterPacks.items.map((pack: any) => (
+                          <StarterPackCard key={pack.uri} pack={pack} />
                         ))}
-                      </>
-                    )}
-                    {tabData.feeds.items.length === 0 && !tabData.feeds.isLoading && (
-                      <div className="text-center text-sm text-muted-foreground py-6">
-                        No feeds available.
                       </div>
                     )}
-                    {tabData.feeds.items.map((feed: any) => (
-                      <FeedCard
-                        key={feed.uri}
-                        feed={feed}
-                        onPin={handlePinFeed}
-                        isPinning={pinningFeedUri === feed.uri}
-                        isPinned={pinnedFeedUris.has(feed.uri)}
-                      />
-                    ))}
-                  </div>
-                )}
 
-                {activeTab === 'starterPacks' && (
-                  <div>
-                    {tabData.starterPacks.isLoading && tabData.starterPacks.items.length === 0 && (
-                      <>
-                        {[...Array(3)].map((_, i) => (
-                          <PostSkeleton key={`profile-pack-${i}`} />
+                    {activeTab === 'lists' && (
+                      <div>
+                        {tabData.lists.isLoading && tabData.lists.items.length === 0 && (
+                          <>
+                            {[...Array(3)].map((_, i) => (
+                              <PostSkeleton key={`profile-list-${i}`} />
+                            ))}
+                          </>
+                        )}
+                        {tabData.lists.items.length === 0 && !tabData.lists.isLoading && (
+                          <div className="text-center text-sm text-muted-foreground py-6">
+                            No lists available.
+                          </div>
+                        )}
+                        {tabData.lists.items.map((list: any) => (
+                          <ListCard key={list.uri} list={list} />
                         ))}
-                      </>
-                    )}
-                    {tabData.starterPacks.items.length === 0 && !tabData.starterPacks.isLoading && (
-                      <div className="text-center text-sm text-muted-foreground py-6">
-                        No starter packs available.
                       </div>
                     )}
-                    {tabData.starterPacks.items.map((pack: any) => (
-                      <StarterPackCard key={pack.uri} pack={pack} />
-                    ))}
-                  </div>
-                )}
 
-                {activeTab === 'lists' && (
-                  <div>
-                    {tabData.lists.isLoading && tabData.lists.items.length === 0 && (
-                      <>
-                        {[...Array(3)].map((_, i) => (
-                          <PostSkeleton key={`profile-list-${i}`} />
-                        ))}
-                      </>
-                    )}
-                    {tabData.lists.items.length === 0 && !tabData.lists.isLoading && (
-                      <div className="text-center text-sm text-muted-foreground py-6">
-                        No lists available.
+                    {tabData[activeTab].error && (
+                      <div className="mt-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                        {tabData[activeTab].error}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => fetchTabData(activeTab, true)}
+                          className="ml-2"
+                        >
+                          Retry
+                        </Button>
                       </div>
                     )}
-                    {tabData.lists.items.map((list: any) => (
-                      <ListCard key={list.uri} list={list} />
-                    ))}
+
+                    {tabData[activeTab].cursor && (
+                      <div className="flex justify-center py-6">
+                        <Button
+                          variant="outline"
+                          onClick={() => fetchTabData(activeTab, false)}
+                          disabled={tabData[activeTab].isLoading}
+                        >
+                          {tabData[activeTab].isLoading ? 'Loading...' : 'Load more'}
+                        </Button>
+                      </div>
+                    )}
+
+                    {tabData[activeTab].cursor && <div ref={loadMoreRef} className="h-6" />}
                   </div>
                 )}
-
-                {tabData[activeTab].error && (
-                  <div className="mt-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                    {tabData[activeTab].error}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => fetchTabData(activeTab, true)}
-                      className="ml-2"
-                    >
-                      Retry
-                    </Button>
-                  </div>
-                )}
-
-                {tabData[activeTab].cursor && (
-                  <div className="flex justify-center py-6">
-                    <Button
-                      variant="outline"
-                      onClick={() => fetchTabData(activeTab, false)}
-                      disabled={tabData[activeTab].isLoading}
-                    >
-                      {tabData[activeTab].isLoading ? 'Loading...' : 'Load more'}
-                    </Button>
-                  </div>
-                )}
-
-                {tabData[activeTab].cursor && <div ref={loadMoreRef} className="h-6" />}
               </div>
-            )}
-          </div>
+            </>
+          )}
+
+          <Dialog open={activityOpen} onOpenChange={setActivityOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Keep me posted</DialogTitle>
+              </DialogHeader>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Get notified of this account’s activity.
+              </DialogDescription>
+
+              <div className="space-y-4 mt-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Posts</p>
+                    <p className="text-xs text-muted-foreground">Get notified when they post</p>
+                  </div>
+                  <Switch checked={activityPost} onCheckedChange={setActivityPost} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Replies</p>
+                    <p className="text-xs text-muted-foreground">Get notified when they reply</p>
+                  </div>
+                  <Switch checked={activityReply} onCheckedChange={setActivityReply} />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setActivityOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveActivity} disabled={activitySaving}>
+                    {activitySaving ? 'Saving...' : 'Save changes'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {error && (
             <div className="mt-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">

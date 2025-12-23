@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { chatApi } from '@/lib/chat';
+import { atprotoClient } from '@/lib/atproto';
 import { PenSquare, MoreHorizontal, User, UserPlus, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { navItems } from './navItems';
@@ -19,6 +20,7 @@ export function LeftSidebar() {
   const navigate = useNavigate();
   const { user, hasChatSession, isChatSessionLoading, isAuthenticated, logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notifUnreadCount, setNotifUnreadCount] = useState(0);
 
   useEffect(() => {
     const loadUnreadCount = async () => {
@@ -47,7 +49,29 @@ export function LeftSidebar() {
     };
 
     loadUnreadCount();
-  }, [isAuthenticated, isChatSessionLoading, hasChatSession, location.pathname]);
+  }, [isAuthenticated, isChatSessionLoading, hasChatSession, location.pathname, user?.did]);
+
+  useEffect(() => {
+    const loadNotificationsCount = async () => {
+      if (!isAuthenticated) {
+        setNotifUnreadCount(0);
+        return;
+      }
+      if (location.pathname.startsWith('/notifications')) {
+        setNotifUnreadCount(0);
+        return;
+      }
+
+      try {
+        const result = await atprotoClient.getUnreadNotificationsCount();
+        setNotifUnreadCount(result.success ? result.count : 0);
+      } catch {
+        setNotifUnreadCount(0);
+      }
+    };
+
+    loadNotificationsCount();
+  }, [isAuthenticated, location.pathname, user?.did]);
 
   const normalizeHandle = (value?: string | null) => value?.replace(/^@/, '').toLowerCase();
   const activeProfileHandle = location.pathname.startsWith('/profile/')
@@ -147,6 +171,14 @@ export function LeftSidebar() {
                     <>
                       <span className="ml-auto min-w-6 h-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold px-2 hidden xl:inline-flex">
                         {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                      <span className="ml-auto h-2 w-2 rounded-full bg-primary xl:hidden" />
+                    </>
+                  )}
+                  {item.path === '/notifications' && notifUnreadCount > 0 && (
+                    <>
+                      <span className="ml-auto min-w-6 h-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold px-2 hidden xl:inline-flex">
+                        {notifUnreadCount > 99 ? '99+' : notifUnreadCount}
                       </span>
                       <span className="ml-auto h-2 w-2 rounded-full bg-primary xl:hidden" />
                     </>

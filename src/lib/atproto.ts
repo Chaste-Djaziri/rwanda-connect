@@ -1,4 +1,4 @@
-import { BskyAgent, AtpSessionData, AtpSessionEvent, RichText } from '@atproto/api';
+import { BskyAgent, AtpSessionData, AtpSessionEvent, RichText, AtUri } from '@atproto/api';
 
 const PUBLIC_API = 'https://public.api.bsky.app';
 const BSKY_SERVICE = 'https://bsky.social';
@@ -303,6 +303,45 @@ class ATProtoClient {
     }
   }
 
+  async createReply({
+    text,
+    replyToUri,
+    replyToCid,
+    rootUri,
+    rootCid,
+    langs,
+  }: {
+    text: string;
+    replyToUri: string;
+    replyToCid: string;
+    rootUri?: string;
+    rootCid?: string;
+    langs?: string[];
+  }) {
+    try {
+      const richText = new RichText({ text });
+      await richText.detectFacets(this.agent);
+      const record: any = {
+        $type: 'app.bsky.feed.post',
+        text: richText.text,
+        facets: richText.facets,
+        createdAt: new Date().toISOString(),
+        reply: {
+          root: { uri: rootUri || replyToUri, cid: rootCid || replyToCid },
+          parent: { uri: replyToUri, cid: replyToCid },
+        },
+      };
+      if (langs && langs.length > 0) {
+        record.langs = langs;
+      }
+      const response = await this.agent.post(record);
+      return { success: true, uri: response.uri, cid: response.cid };
+    } catch (error: any) {
+      console.error('Create reply error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   async deletePost(uri: string) {
     try {
       const repo = this.agent.session?.did;
@@ -321,12 +360,82 @@ class ATProtoClient {
     }
   }
 
+  async likePost(uri: string, cid: string) {
+    try {
+      const response = await this.agent.like(uri, cid);
+      return { success: true, uri: response.uri };
+    } catch (error: any) {
+      console.error('Like post error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async deleteLike(likeUri: string) {
+    try {
+      await this.agent.deleteLike(likeUri);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Delete like error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async repostPost(uri: string, cid: string) {
+    try {
+      const response = await this.agent.repost(uri, cid);
+      return { success: true, uri: response.uri };
+    } catch (error: any) {
+      console.error('Repost error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async deleteRepost(repostUri: string) {
+    try {
+      await this.agent.deleteRepost(repostUri);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Delete repost error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async followActor(did: string) {
+    try {
+      const response = await this.agent.follow(did);
+      return { success: true, uri: response.uri };
+    } catch (error: any) {
+      console.error('Follow actor error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async unfollowActor(followUri: string) {
+    try {
+      await this.agent.deleteFollow(followUri);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Unfollow actor error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   async muteActor(actor: string) {
     try {
       await this.agent.app.bsky.graph.muteActor({ actor });
       return { success: true };
     } catch (error: any) {
       console.error('Mute actor error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async unmuteActor(actor: string) {
+    try {
+      await this.agent.app.bsky.graph.unmuteActor({ actor });
+      return { success: true };
+    } catch (error: any) {
+      console.error('Unmute actor error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -347,6 +456,20 @@ class ATProtoClient {
       return { success: true };
     } catch (error: any) {
       console.error('Block actor error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async unblockActor(blockUri: string) {
+    try {
+      const blockUrip = new AtUri(blockUri);
+      await this.agent.app.bsky.graph.block.delete({
+        repo: blockUrip.hostname,
+        rkey: blockUrip.rkey,
+      });
+      return { success: true };
+    } catch (error: any) {
+      console.error('Unblock actor error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -375,6 +498,40 @@ class ATProtoClient {
       return { success: true };
     } catch (error: any) {
       console.error('Report post error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async reportAccount(did: string, reason: string = 'Reported from Hillside') {
+    try {
+      await this.agent.com.atproto.moderation.createReport({
+        reasonType: 'com.atproto.moderation.defs#reasonOther',
+        reason,
+        subject: {
+          $type: 'com.atproto.admin.defs#repoRef',
+          did,
+        },
+      });
+      return { success: true };
+    } catch (error: any) {
+      console.error('Report account error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async putActivitySubscription(subject: string, activity: { post: boolean; reply: boolean }) {
+    try {
+      const response = await this.agent.app.bsky.notification.putActivitySubscription({
+        subject,
+        activitySubscription: {
+          $type: 'app.bsky.notification.defs#activitySubscription',
+          post: activity.post,
+          reply: activity.reply,
+        },
+      });
+      return { success: true, data: response.data.activitySubscription };
+    } catch (error: any) {
+      console.error('Put activity subscription error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -589,7 +746,6 @@ class ATProtoClient {
       | 'posts_with_replies'
       | 'posts_no_replies'
       | 'posts_with_media'
-      | 'posts_with_video'
       | 'posts_and_author_threads',
     cursor?: string,
     limit: number = 30
@@ -659,6 +815,32 @@ class ATProtoClient {
       };
     } catch (error: any) {
       console.error('Get notifications error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getUnreadNotificationsCount() {
+    try {
+      const response = await this.agent.app.bsky.notification.getUnreadCount({});
+      return { success: true, count: response.data.count ?? 0 };
+    } catch (error: any) {
+      console.error('Get unread notifications count error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async updateNotificationsSeen(seenAt?: string) {
+    try {
+      const timestamp = seenAt || new Date().toISOString();
+      const agentAny = this.agent as unknown as { updateSeenNotifications?: (value?: string) => Promise<void> };
+      if (typeof agentAny.updateSeenNotifications === 'function') {
+        await agentAny.updateSeenNotifications(timestamp);
+      } else {
+        await this.agent.app.bsky.notification.updateSeen({ seenAt: timestamp });
+      }
+      return { success: true };
+    } catch (error: any) {
+      console.error('Update notifications seen error:', error);
       return { success: false, error: error.message };
     }
   }

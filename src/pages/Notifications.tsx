@@ -3,7 +3,9 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { atprotoClient } from '@/lib/atproto';
+import { useAuth } from '@/contexts/AuthContext';
 import { Bell, Heart, Repeat2, MessageSquare, UserPlus, AtSign, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface Notification {
   uri: string;
@@ -72,25 +74,29 @@ function NotificationItem({ notification }: { notification: Notification }) {
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2 mb-1">
-            {/* Avatar */}
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-muted shrink-0">
-              {notification.author.avatar ? (
-                <img
-                  src={notification.author.avatar}
-                  alt={notification.author.displayName || notification.author.handle}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-xs font-semibold text-muted-foreground">
-                  {notification.author.handle[0]?.toUpperCase()}
-                </div>
-              )}
-            </div>
+            <Link to={`/profile/${notification.author.handle}`} className="shrink-0">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-muted">
+                {notification.author.avatar ? (
+                  <img
+                    src={notification.author.avatar}
+                    alt={notification.author.displayName || notification.author.handle}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs font-semibold text-muted-foreground">
+                    {notification.author.handle[0]?.toUpperCase()}
+                  </div>
+                )}
+              </div>
+            </Link>
             <div className="flex-1 min-w-0">
               <p className="text-sm">
-                <span className="font-semibold text-foreground">
+                <Link
+                  to={`/profile/${notification.author.handle}`}
+                  className="font-semibold text-foreground hover:underline"
+                >
                   {notification.author.displayName || notification.author.handle}
-                </span>{' '}
+                </Link>{' '}
                 <span className="text-muted-foreground">{label}</span>
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -125,6 +131,7 @@ function NotificationSkeleton() {
 }
 
 export default function NotificationsPage() {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -160,6 +167,15 @@ export default function NotificationsPage() {
 
         if (refresh) {
           setNotifications(notifData);
+          const latestSeenAt =
+            notifData.reduce((latest, item) => {
+              if (!latest) return item.indexedAt;
+              return item.indexedAt > latest ? item.indexedAt : latest;
+            }, '' as string) || new Date().toISOString();
+          const seenResult = await atprotoClient.updateNotificationsSeen(latestSeenAt);
+          if (seenResult.success) {
+            setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
+          }
         } else {
           setNotifications((prev) => [...prev, ...notifData]);
         }
@@ -176,8 +192,20 @@ export default function NotificationsPage() {
   }, [cursor]);
 
   useEffect(() => {
-    fetchNotifications(true);
-  }, []);
+    let isActive = true;
+    const init = async () => {
+      setNotifications([]);
+      setCursor(undefined);
+      await atprotoClient.updateNotificationsSeen(new Date().toISOString());
+      if (isActive) {
+        fetchNotifications(true);
+      }
+    };
+    init();
+    return () => {
+      isActive = false;
+    };
+  }, [user?.did]);
 
   useEffect(() => {
     const node = loadMoreRef.current;

@@ -23,6 +23,8 @@ export function RightSidebar() {
   const [isLoadingConvos, setIsLoadingConvos] = useState(false);
   const [trendingTopics, setTrendingTopics] = useState<{ topic: string; displayName?: string; link: string }[]>([]);
   const [isLoadingTrends, setIsLoadingTrends] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const isChatRoute = location.pathname.startsWith('/chat');
 
   useEffect(() => {
@@ -68,6 +70,37 @@ export function RightSidebar() {
     fetchTrends();
   }, [isChatRoute]);
 
+  useEffect(() => {
+    if (isChatRoute) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+    let active = true;
+    setIsSearching(true);
+    const timeout = setTimeout(async () => {
+      try {
+        const result = await atprotoClient.searchActors(query);
+        if (!active) return;
+        setSearchResults(result.success && result.data ? result.data : []);
+      } catch {
+        if (active) setSearchResults([]);
+      } finally {
+        if (active) setIsSearching(false);
+      }
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [searchQuery, isChatRoute]);
+
   const formatTime = (dateString?: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -99,6 +132,56 @@ export function RightSidebar() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 bg-muted/40 border-transparent focus:border-primary/50 rounded-full"
           />
+          {!isChatRoute && (isSearching || searchResults.length > 0) && (
+            <div className="absolute left-0 right-0 mt-2 rounded-2xl border border-border bg-background shadow-card z-20 overflow-hidden">
+              {isSearching ? (
+                <div className="p-3 space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                      <div className="space-y-1 flex-1">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-3 w-32" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : searchResults.length === 0 ? (
+                <div className="p-4 text-sm text-muted-foreground">No users found.</div>
+              ) : (
+                <div className="py-2">
+                  {searchResults.map((actor: any) => (
+                    <Link
+                      key={actor.did}
+                      to={`/profile/${actor.handle}`}
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-muted/40 transition-colors"
+                      onClick={() => setSearchQuery('')}
+                    >
+                      <div className="h-8 w-8 rounded-full overflow-hidden bg-muted shrink-0">
+                        {actor.avatar ? (
+                          <img
+                            src={actor.avatar}
+                            alt={actor.displayName || actor.handle}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center text-xs font-semibold text-muted-foreground">
+                            {actor.handle?.[0]?.toUpperCase() ?? 'U'}
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {actor.displayName || actor.handle}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">@{actor.handle}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

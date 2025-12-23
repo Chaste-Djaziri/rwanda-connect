@@ -5,6 +5,9 @@ import { atprotoClient } from '@/lib/atproto';
 import { FeedPost, PostCard } from '@/components/feed/PostCard';
 import { getSavedPosts, removeSavedPost, savePost, SavedPost } from '@/lib/savedPosts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { MessageSquare } from 'lucide-react';
+import { CommentDialog } from '@/components/feed/CommentDialog';
 
 interface ThreadViewPost {
   post: any;
@@ -28,6 +31,10 @@ const mapPostView = (post: any): FeedPost => ({
   repostCount: post.repostCount ?? 0,
   likeCount: post.likeCount ?? 0,
   embed: post.embed,
+  viewer: {
+    like: post.viewer?.like,
+    repost: post.viewer?.repost,
+  },
 });
 
 function ReplyTree({ replies, depth }: { replies: ThreadViewPost[]; depth: number }) {
@@ -54,6 +61,7 @@ export default function PostDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
+  const [commentOpen, setCommentOpen] = useState(false);
 
   useEffect(() => {
     const saved = getSavedPosts().map((post) => post.uri);
@@ -144,6 +152,12 @@ export default function PostDetailPage() {
               isSaved={savedUris.has(rootPost.uri)}
               onToggleSave={toggleSave}
             />
+            <div className="px-4 pt-2 pb-4 border-b border-border">
+              <Button variant="outline" onClick={() => setCommentOpen(true)}>
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Write a reply
+              </Button>
+            </div>
             <div className="p-4 space-y-4">
               {thread?.replies && thread.replies.length > 0 ? (
                 <ReplyTree replies={thread.replies} depth={0} />
@@ -151,6 +165,11 @@ export default function PostDetailPage() {
                 <p className="text-sm text-muted-foreground">No replies yet.</p>
               )}
             </div>
+            <CommentDialog
+              open={commentOpen}
+              onOpenChange={setCommentOpen}
+              post={rootPost}
+            />
           </div>
         ) : null}
       </div>

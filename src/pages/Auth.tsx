@@ -36,6 +36,8 @@ export default function AuthPage() {
   const [showLoginForm, setShowLoginForm] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [switchingDid, setSwitchingDid] = useState<string | null>(null);
 
   useEffect(() => {
     const query = identifier.trim();
@@ -199,19 +201,23 @@ export default function AuthPage() {
                       key={account.did}
                       type="button"
                       onClick={async () => {
-                        setIsLoading(true);
+                        setIsSwitching(true);
+                        setSwitchingDid(account.did);
                         setError(null);
                         const ok = await switchAccount(account);
-                        setIsLoading(false);
+                        setIsSwitching(false);
+                        setSwitchingDid(null);
                         if (ok) {
                           navigate('/feed', { replace: true });
                         } else {
                           setError('Failed to switch account. Please sign in again.');
                         }
                       }}
-                      className="w-full flex items-center gap-3 rounded-xl border border-border px-4 py-3 hover:bg-muted/40 transition-colors text-left"
+                      disabled={isSwitching}
+                      aria-busy={switchingDid === account.did}
+                      className="w-full flex items-center gap-3 rounded-xl border border-border px-4 py-3 hover:bg-muted/40 transition-colors text-left disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      <div className="h-10 w-10 rounded-full overflow-hidden bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground">
+                      <div className="h-10 w-10 rounded-full overflow-hidden bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground shrink-0">
                         {account.avatar ? (
                           <img
                             src={account.avatar}
@@ -226,6 +232,12 @@ export default function AuthPage() {
                         <p className="font-semibold text-foreground truncate">@{account.handle}</p>
                         <p className="text-xs text-muted-foreground truncate">{account.did}</p>
                       </div>
+                      {switchingDid === account.did && (
+                        <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Switching...
+                        </div>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -237,7 +249,14 @@ export default function AuthPage() {
                   </div>
                 )}
 
-                <Button type="button" variant="brand" size="lg" className="w-full" onClick={() => setShowLoginForm(true)}>
+                <Button
+                  type="button"
+                  variant="brand"
+                  size="lg"
+                  className="w-full"
+                  onClick={() => setShowLoginForm(true)}
+                  disabled={isSwitching}
+                >
                   Add another account
                 </Button>
               </div>
