@@ -171,7 +171,7 @@ export default function ChatThreadPage() {
         </div>
       </header>
 
-      <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+      <div className="flex min-h-[calc(100dvh-4rem)] flex-col">
         {error && (
           <div className="px-6 py-4">
             <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -191,7 +191,7 @@ export default function ChatThreadPage() {
           forceScrollToken={scrollToken}
         />
 
-        <div className="sticky bottom-0 z-20">
+        <div className="sticky bottom-0 z-20 pb-[env(safe-area-inset-bottom)]">
           <MessageComposer onSend={handleSend} isSending={isSending} />
         </div>
       </div>
