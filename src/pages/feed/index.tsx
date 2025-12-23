@@ -163,9 +163,7 @@ export default function FeedPage() {
         <div className="px-6 h-14 grid grid-cols-3 items-center">
           <div />
           <div className="flex justify-center">
-            <div className="w-9 h-9 rounded-xl bg-muted/60 flex items-center justify-center">
-              <img src="/logo/dark-mode-logo.png" alt="HiiSide" className="w-5 h-5" />
-            </div>
+            <img src="/logo/dark-mode-logo.png" alt="HiiSide" className="h-auto w-auto scale-125" />
           </div>
           <div className="flex justify-end">
             <Button variant="ghost" size="icon" onClick={() => fetchFeed(true)} disabled={isRefreshing}>
