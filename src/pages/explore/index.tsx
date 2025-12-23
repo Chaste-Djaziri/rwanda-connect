@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { atprotoClient } from '@/lib/atproto';
 import { Compass, Search, TrendingUp, Users, RefreshCw } from 'lucide-react';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { usePageMeta } from '@/lib/seo';
 
 interface SuggestedFeed {
   uri: string;
@@ -135,6 +136,10 @@ function ExploreSkeleton() {
 }
 
 export default function ExplorePage() {
+  usePageMeta({
+    title: 'Explore',
+    description: 'Discover people and feeds across HiiSide.',
+  });
   const [activeTab, setActiveTab] = useState<'feeds' | 'people'>('feeds');
   const [feeds, setFeeds] = useState<SuggestedFeed[]>([]);
   const [actors, setActors] = useState<SuggestedActor[]>([]);

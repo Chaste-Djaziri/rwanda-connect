@@ -2,9 +2,15 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowRight, Shield, Globe, Users } from 'lucide-react';
+import { usePageMeta } from '@/lib/seo';
 
 export default function Index() {
   const { isAuthenticated, isLoading } = useAuth();
+  usePageMeta({
+    title: 'Welcome',
+    description:
+      'HiiSide is a decentralized social platform built on the AT Protocol. Own your data, build community, and connect through an open network.',
+  });
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -23,20 +29,10 @@ export default function Index() {
       <header className="relative z-10 px-6 py-5">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl gradient-primary shadow-glow flex items-center justify-center">
-              <svg 
-                viewBox="0 0 24 24" 
-                className="w-5 h-5 text-primary-foreground"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
+            <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center">
+              <img src="/logo/dark-mode-logo.png" alt="HiiSide" className="w-6 h-6" />
             </div>
-            <span className="text-xl font-semibold text-foreground">Hillside</span>
+            <span className="text-xl font-semibold text-foreground">HiiSide</span>
           </div>
           
           {!isLoading && (
@@ -138,7 +134,7 @@ export default function Index() {
       <footer className="relative z-10 border-t border-border py-8">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2025 Hillside. Built with AT Protocol.
+            © 2025 HiiSide. Built with AT Protocol.
           </p>
           <div className="flex items-center gap-6">
             <a 

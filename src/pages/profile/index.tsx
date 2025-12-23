@@ -35,6 +35,7 @@ import { chatApi } from '@/lib/chat';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { usePageMeta } from '@/lib/seo';
 
 interface ProfileData {
   did: string;
@@ -324,6 +325,10 @@ export default function ProfilePage() {
       : allowIncoming === 'following'
         ? isFollowedBy
         : false;
+  usePageMeta({
+    title: profile?.displayName || (profile?.handle ? `@${profile.handle}` : 'Profile'),
+    description: profile?.description || 'Profile on HiiSide.',
+  });
   const availableTabs = useMemo(
     () => (isBlocked ? [] : tabConfig.filter((tab) => tabVisibility[tab.key])),
     [tabVisibility, isBlocked]

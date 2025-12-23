@@ -1,8 +1,13 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePageMeta } from '@/lib/seo';
 
 export default function ProfileRedirect() {
   const { user } = useAuth();
+  usePageMeta({
+    title: 'Profile',
+    description: 'Your profile on HiiSide.',
+  });
   if (!user?.handle) {
     return <Navigate to="/auth" replace />;
   }

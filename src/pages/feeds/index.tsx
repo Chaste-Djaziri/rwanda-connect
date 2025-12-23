@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Compass, Settings, Star, Users, Search, ChevronRight, Pin } from 'lucide-react';
+import { usePageMeta } from '@/lib/seo';
 
 
 type SavedFeedItem = {
@@ -117,6 +118,10 @@ function FeedCard({
 }
 
 export default function FeedsPage() {
+  usePageMeta({
+    title: 'Feeds',
+    description: 'Browse and manage your pinned feeds on HiiSide.',
+  });
   const [savedFeeds, setSavedFeeds] = useState<SavedFeedItem[]>([]);
   const [savedFeedDetails, setSavedFeedDetails] = useState<Record<string, FeedGenerator>>({});
   const [suggestedFeeds, setSuggestedFeeds] = useState<FeedGenerator[]>([]);

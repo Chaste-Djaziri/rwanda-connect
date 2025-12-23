@@ -8,6 +8,7 @@ import { Loader2, AlertCircle, Lock, AtSign, X } from 'lucide-react';
 import { z } from 'zod';
 import { atprotoClient } from '@/lib/atproto';
 import { AtpSessionData } from '@atproto/api';
+import { usePageMeta } from '@/lib/seo';
 
 const loginSchema = z.object({
   identifier: z.string()
@@ -26,6 +27,10 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login, isAuthenticated, isLoading: authLoading, switchAccount, logout } = useAuth();
+  usePageMeta({
+    title: 'Sign in',
+    description: 'Sign in to HiiSide with your Bluesky handle and app password.',
+  });
   
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -165,21 +170,11 @@ export default function AuthPage() {
         <div className="w-full max-w-md animate-slide-up">
           {/* Logo and Title */}
           <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-primary shadow-glow mb-6">
-              <svg 
-                viewBox="0 0 24 24" 
-                className="w-8 h-8 text-primary-foreground"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-muted/60 mb-6">
+              <img src="/logo/dark-mode-logo.png" alt="HiiSide" className="w-10 h-10" />
             </div>
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Hillside
+              HiiSide
             </h1>
             <p className="text-muted-foreground">
               A modern, decentralized social platform

@@ -1,11 +1,12 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { atprotoClient } from '@/lib/atproto';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, MessageSquare } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { getSavedPosts, removeSavedPost, savePost, SavedPost } from '@/lib/savedPosts';
 import { FeedPost, PostCard } from '@/components/feed/PostCard';
+import { usePageMeta } from '@/lib/seo';
 
 function PostSkeleton() {
   return (
@@ -44,6 +45,18 @@ export default function FeedPage() {
   const [cursor, setCursor] = useState<string | undefined>();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const shouldScrollTabs = pinnedFeeds.length > 4;
+  const activeLabel = useMemo(() => {
+    if (!activeFeed) return 'Feed';
+    const match = pinnedFeeds.find((item) => item.id === activeFeed.id);
+    if (match?.label) return match.label;
+    if (activeFeed.type === 'timeline' && activeFeed.value === 'following') return 'Following';
+    return 'Feed';
+  }, [activeFeed, pinnedFeeds]);
+
+  usePageMeta({
+    title: activeLabel,
+    description: `Latest posts from ${activeLabel.toLowerCase()} on HiiSide.`,
+  });
 
   useEffect(() => {
     const saved = getSavedPosts().map((post) => post.uri);
@@ -229,8 +242,8 @@ export default function FeedPage() {
         <div className="px-6 h-14 grid grid-cols-3 items-center">
           <div />
           <div className="flex justify-center">
-            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-glow">
-              <MessageSquare className="w-4 h-4 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-xl bg-muted/60 flex items-center justify-center">
+              <img src="/logo/dark-mode-logo.png" alt="HiiSide" className="w-5 h-5" />
             </div>
           </div>
           <div className="flex justify-end">

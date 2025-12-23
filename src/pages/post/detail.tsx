@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { MessageSquare } from 'lucide-react';
 import { CommentDialog } from '@/components/feed/CommentDialog';
+import { usePageMeta } from '@/lib/seo';
 
 interface ThreadViewPost {
   post: any;
@@ -116,6 +117,17 @@ export default function PostDetailPage() {
     if (!thread?.post) return null;
     return mapPostView(thread.post);
   }, [thread]);
+
+  const postDescription = useMemo(() => {
+    const text = rootPost?.record?.text?.trim();
+    if (!text) return 'Post on HiiSide.';
+    return text.length > 140 ? `${text.slice(0, 137)}...` : text;
+  }, [rootPost]);
+
+  usePageMeta({
+    title: rootPost?.author?.handle ? `Post by @${rootPost.author.handle}` : 'Post',
+    description: postDescription,
+  });
 
   if (!handle || !postId) {
     return <Navigate to="/feed" replace />;

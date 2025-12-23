@@ -1,6 +1,11 @@
 import { AppLayout } from '@/components/layout/AppLayout';
+import { usePageMeta } from '@/lib/seo';
 
 export default function ListsPage() {
+  usePageMeta({
+    title: 'Lists',
+    description: 'Organize people into curated lists.',
+  });
   return (
     <AppLayout>
       <header className="sticky top-0 z-30 surface-elevated border-b border-border backdrop-blur-lg bg-background/80">

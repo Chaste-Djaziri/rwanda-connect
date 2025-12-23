@@ -3,8 +3,13 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { getSavedPosts, removeSavedPost, SavedPost } from '@/lib/savedPosts';
 import { FeedPost, PostCard } from '@/components/feed/PostCard';
+import { usePageMeta } from '@/lib/seo';
 
 export default function SavedPage() {
+  usePageMeta({
+    title: 'Saved',
+    description: 'Posts you have saved for later.',
+  });
   const [savedPosts, setSavedPosts] = useState<SavedPost[]>([]);
 
   useEffect(() => {

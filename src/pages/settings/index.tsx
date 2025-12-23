@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Moon, Sun, Palette, Globe, Shield, User, LogOut, ChevronRight } from 'lucide-react';
+import { usePageMeta } from '@/lib/seo';
 
 interface SettingsSectionProps {
   title: string;
@@ -55,6 +56,10 @@ function SettingsRow({ icon, label, description, action, onClick }: SettingsRowP
 export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  usePageMeta({
+    title: 'Settings',
+    description: 'Manage your HiiSide preferences and account settings.',
+  });
 
   const handleLogout = async () => {
     await logout();

@@ -1,8 +1,13 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { usePageMeta } from "@/lib/seo";
 
 const NotFound = () => {
   const location = useLocation();
+  usePageMeta({
+    title: "404",
+    description: "Page not found on HiiSide.",
+  });
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);

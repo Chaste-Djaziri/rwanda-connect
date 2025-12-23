@@ -6,9 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getSavedPosts, removeSavedPost, savePost, SavedPost } from '@/lib/savedPosts';
 import { FeedPost, PostCard } from '@/components/feed/PostCard';
+import { usePageMeta } from '@/lib/seo';
 
 export default function HashtagPage() {
   const { tag } = useParams<{ tag: string }>();
+  usePageMeta({
+    title: tag ? `#${tag}` : 'Hashtag',
+    description: tag ? `Posts tagged #${tag} on HiiSide.` : 'Hashtag posts on HiiSide.',
+  });
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [savedUris, setSavedUris] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);

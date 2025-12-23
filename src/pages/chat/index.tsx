@@ -8,8 +8,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePageMeta } from '@/lib/seo';
 
 export default function ChatPage() {
+  usePageMeta({
+    title: 'Chat',
+    description: 'Direct messages with your connections on HiiSide.',
+  });
   const location = useLocation();
   const navigate = useNavigate();
   const { user, hasChatSession, isChatSessionLoading, isAuthenticated } = useAuth();

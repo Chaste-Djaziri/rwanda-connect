@@ -6,6 +6,7 @@ import { FeedPost, PostCard } from '@/components/feed/PostCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getSavedPosts, removeSavedPost, savePost, SavedPost } from '@/lib/savedPosts';
+import { usePageMeta } from '@/lib/seo';
 
 function PostSkeleton() {
   return (
@@ -40,6 +41,11 @@ export default function FeedDetailPage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  usePageMeta({
+    title: feedMeta?.name || 'Feed',
+    description: feedMeta?.description || 'Explore a curated feed on HiiSide.',
+  });
 
   useEffect(() => {
     const saved = getSavedPosts().map((post) => post.uri);

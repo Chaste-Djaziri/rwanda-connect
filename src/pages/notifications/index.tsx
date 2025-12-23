@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Bell, Heart, Repeat2, MessageSquare, UserPlus, AtSign, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { usePageMeta } from '@/lib/seo';
 
 interface Notification {
   uri: string;
@@ -138,6 +139,10 @@ function NotificationSkeleton() {
 }
 
 export default function NotificationsPage() {
+  usePageMeta({
+    title: 'Notifications',
+    description: 'Mentions, likes, reposts, and replies from your network.',
+  });
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);

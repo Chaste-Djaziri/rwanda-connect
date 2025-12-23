@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { usePageMeta } from '@/lib/seo';
 
 const mergeMessages = (existing: ChatMessage[], incoming: ChatMessage[]) => {
   const map = new Map<string, ChatMessage>();
@@ -116,6 +117,11 @@ export default function ChatThreadPage() {
     if (!convo || !user?.did) return null;
     return convo.members.find((member) => member.did !== user.did) ?? convo.members[0];
   }, [convo, user?.did]);
+
+  usePageMeta({
+    title: otherMember?.displayName || otherMember?.handle || 'Chat',
+    description: 'Direct message thread on HiiSide.',
+  });
 
   const readStatusLabel = useMemo(() => {
     if (messages.length === 0) return undefined;
