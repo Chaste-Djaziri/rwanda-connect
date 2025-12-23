@@ -6,7 +6,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import {
   Calendar,
-  CheckCircle2,
   BellPlus,
   Copy,
   List,
@@ -35,6 +34,7 @@ import { toast } from '@/components/ui/sonner';
 import { chatApi } from '@/lib/chat';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 
 interface ProfileData {
   did: string;
@@ -581,6 +581,14 @@ export default function ProfilePage() {
       try {
         const result = await atprotoClient.getProfile(targetHandle);
         if (result.success && result.data) {
+          const verification = result.data.verification;
+          const verifications = result.data.verifications;
+          const computedVerified =
+            verification || verifications
+              ? verification?.verifiedStatus === 'valid' ||
+                verification?.trustedVerifierStatus === 'valid' ||
+                Boolean(verifications?.some((entry: { isValid?: boolean }) => entry?.isValid))
+              : undefined;
           setProfile({
             did: result.data.did,
             handle: result.data.handle,
@@ -593,7 +601,7 @@ export default function ProfilePage() {
             postsCount: result.data.postsCount ?? 0,
             createdAt: result.data.createdAt,
             chatAllowIncoming: result.data.associated?.chat?.allowIncoming,
-            verified: result.data.verification?.verifiedStatus === 'valid',
+            verified: computedVerified,
             viewer: {
               blockedBy: result.data.viewer?.blockedBy,
               blocking: result.data.viewer?.blocking,
@@ -845,7 +853,11 @@ export default function ProfilePage() {
               <h1 className="font-semibold text-foreground truncate">
                 {profile?.displayName || profile?.handle || 'Profile'}
               </h1>
-              {profile?.verified && <CheckCircle2 className="w-4 h-4 text-primary" />}
+              <VerifiedBadge
+                className="w-4 h-4 text-primary"
+                handle={profile?.handle}
+                verified={profile?.verified}
+              />
             </div>
             {profile && (
               <p className="text-xs text-muted-foreground">
@@ -1011,9 +1023,11 @@ export default function ProfilePage() {
                 <h2 className="text-2xl font-bold text-foreground">
                   {profile?.displayName || profile?.handle}
                 </h2>
-                {profile?.verified && (
-                  <CheckCircle2 className="w-5 h-5 text-primary" aria-label="Verified account" />
-                )}
+                <VerifiedBadge
+                  className="w-5 h-5 text-primary"
+                  handle={profile?.handle}
+                  verified={profile?.verified}
+                />
               </div>
               <p className="text-muted-foreground">@{profile?.handle}</p>
             </div>
