@@ -13,6 +13,7 @@ const SITE_URL = process.env.SITE_URL ?? 'https://hillside.micorp.pro';
 const DEFAULT_OG_IMAGE =
   process.env.DEFAULT_OG_IMAGE ?? `${SITE_URL.replace(/\/$/, '')}/logo/light-mode-logo.png`;
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN ?? '';
+const EMOJI_API_ORIGIN = 'https://www.emoji.family';
 
 const DIST_DIR = path.resolve(process.cwd(), 'dist');
 const PUBLIC_DIR = path.resolve(process.cwd(), 'public');
@@ -55,6 +56,34 @@ const readJsonBody = async <T = any>(req: IncomingMessage): Promise<T> => {
   const raw = Buffer.concat(chunks).toString('utf8').trim();
   if (!raw) return {} as T;
   return JSON.parse(raw) as T;
+};
+
+const forwardEmojiRequest = async (req: IncomingMessage, res: ServerResponse, url: URL) => {
+  const proxyPath = url.pathname.replace(/^\/api\/emoji/, '/api');
+  const target = new URL(proxyPath, EMOJI_API_ORIGIN);
+  target.search = url.search;
+
+  const response = await fetch(target.toString(), {
+    method: 'GET',
+    headers: {
+      'User-Agent': 'HiiSideBot/1.0 (+https://hillside.micorp.pro)',
+      Accept: req.headers.accept ?? '*/*',
+    },
+  });
+
+  const contentType = response.headers.get('content-type') ?? 'application/octet-stream';
+  res.writeHead(response.status, {
+    'Content-Type': contentType,
+    'Cache-Control': response.headers.get('cache-control') ?? 'public, max-age=86400',
+  });
+
+  if (req.method === 'HEAD') {
+    res.end();
+    return;
+  }
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  res.end(buffer);
 };
 
 const parseCookies = (req: IncomingMessage) => {
@@ -397,6 +426,11 @@ const server = createServer(async (req, res) => {
   const pathname = url.pathname;
 
   try {
+    if ((req.method === 'GET' || req.method === 'HEAD') && pathname.startsWith('/api/emoji/')) {
+      await forwardEmojiRequest(req, res, url);
+      return;
+    }
+
     if (req.method === 'POST' && pathname === '/api/chat/session') {
       const body = await readJsonBody<{ identifier?: string; appPassword?: string }>(req);
       const identifier = body.identifier?.trim();

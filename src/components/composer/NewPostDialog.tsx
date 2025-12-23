@@ -31,7 +31,17 @@ interface VideoAttachment {
   aspectRatio?: { width: number; height: number };
 }
 
-const emojiOptions = ['😀', '😅', '😂', '😍', '😎', '🤝', '🙌', '🎉', '💡', '🔥', '✨', '💬'];
+interface EmojiFamilyItem {
+  emoji: string;
+  hexcode: string;
+  annotation: string;
+  group: string;
+  subgroup: string;
+  tags?: string[];
+  shortcodes?: string[];
+}
+
+const EMOJI_API_BASE = '/api/emoji';
 
 const languageOptions = [
   { value: 'auto', label: 'Auto' },
@@ -107,6 +117,11 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
   const [lists, setLists] = useState<Array<{ uri: string; name: string }>>([]);
   const [isListsLoading, setIsListsLoading] = useState(false);
   const [listsError, setListsError] = useState<string | null>(null);
+  const [isEmojiOpen, setIsEmojiOpen] = useState(false);
+  const [emojiQuery, setEmojiQuery] = useState('');
+  const [emojiResults, setEmojiResults] = useState<EmojiFamilyItem[]>([]);
+  const [isEmojiLoading, setIsEmojiLoading] = useState(false);
+  const [emojiError, setEmojiError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
@@ -157,6 +172,43 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
       .catch(() => setListsError('Failed to load lists.'))
       .finally(() => setIsListsLoading(false));
   }, [open, user?.did, user?.handle]);
+
+  useEffect(() => {
+    if (!isEmojiOpen) return;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setIsEmojiLoading(true);
+      setEmojiError(null);
+      try {
+        const params = new URLSearchParams();
+        if (emojiQuery.trim()) {
+          params.set('search', emojiQuery.trim());
+        } else {
+          params.set('group', 'smileys-emotion');
+        }
+        params.set('includeVariations', 'true');
+        const response = await fetch(`${EMOJI_API_BASE}/emojis?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error('Emoji API request failed');
+        }
+        const data = (await response.json()) as EmojiFamilyItem[];
+        setEmojiResults(Array.isArray(data) ? data.filter((item) => item?.emoji) : []);
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          setEmojiError('Failed to load emojis.');
+        }
+      } finally {
+        setIsEmojiLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [emojiQuery, isEmojiOpen]);
 
   const insertEmoji = (emoji: string) => {
     const target = textareaRef.current;
@@ -446,25 +498,42 @@ export function NewPostDialog({ trigger }: { trigger: React.ReactNode }) {
                   <Video className="w-4 h-4 mr-2" />
                   Video
                 </Button>
-                <Popover>
+                <Popover open={isEmojiOpen} onOpenChange={setIsEmojiOpen}>
                   <PopoverTrigger asChild>
                     <Button type="button" variant="outline" size="sm">
                       <SmilePlus className="w-4 h-4 mr-2" />
                       Emoji
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-56">
-                    <div className="grid grid-cols-6 gap-2">
-                      {emojiOptions.map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          className="text-xl"
-                          onClick={() => insertEmoji(emoji)}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
+                  <PopoverContent className="w-72">
+                    <div className="space-y-3">
+                      <Input
+                        value={emojiQuery}
+                        onChange={(event) => setEmojiQuery(event.target.value)}
+                        placeholder="Search emojis"
+                        className="h-8 text-xs"
+                      />
+                      {isEmojiLoading ? (
+                        <p className="text-xs text-muted-foreground">Loading emojis...</p>
+                      ) : emojiError ? (
+                        <p className="text-xs text-destructive">{emojiError}</p>
+                      ) : emojiResults.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">No emojis found.</p>
+                      ) : (
+                        <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-1">
+                          {emojiResults.map((item) => (
+                            <button
+                              key={`${item.hexcode}-${item.emoji}`}
+                              type="button"
+                              className="h-8 w-8 rounded-lg hover:bg-muted/60 text-lg"
+                              onClick={() => insertEmoji(item.emoji)}
+                              title={item.annotation}
+                            >
+                              {item.emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </PopoverContent>
                 </Popover>

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -9,10 +9,26 @@ interface MessageComposerProps {
   isSending: boolean;
 }
 
+interface EmojiFamilyItem {
+  emoji: string;
+  hexcode: string;
+  annotation: string;
+  group: string;
+  subgroup: string;
+  tags?: string[];
+  shortcodes?: string[];
+}
+
+const EMOJI_API_BASE = '/api/emoji';
+
 export function MessageComposer({ onSend, isSending }: MessageComposerProps) {
   const [text, setText] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const emojiOptions = ['😀', '😅', '😂', '😍', '😎', '🤝', '🙌', '🎉', '💡', '🔥', '✨', '💬'];
+  const [isEmojiOpen, setIsEmojiOpen] = useState(false);
+  const [emojiQuery, setEmojiQuery] = useState('');
+  const [emojiResults, setEmojiResults] = useState<EmojiFamilyItem[]>([]);
+  const [isEmojiLoading, setIsEmojiLoading] = useState(false);
+  const [emojiError, setEmojiError] = useState<string | null>(null);
 
   const handleSend = () => {
     const trimmed = text.trim();
@@ -44,10 +60,47 @@ export function MessageComposer({ onSend, isSending }: MessageComposerProps) {
     });
   };
 
+  useEffect(() => {
+    if (!isEmojiOpen) return;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setIsEmojiLoading(true);
+      setEmojiError(null);
+      try {
+        const params = new URLSearchParams();
+        if (emojiQuery.trim()) {
+          params.set('search', emojiQuery.trim());
+        } else {
+          params.set('group', 'smileys-emotion');
+        }
+        params.set('includeVariations', 'true');
+        const response = await fetch(`${EMOJI_API_BASE}/emojis?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error('Emoji API request failed');
+        }
+        const data = (await response.json()) as EmojiFamilyItem[];
+        setEmojiResults(Array.isArray(data) ? data.filter((item) => item?.emoji) : []);
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          setEmojiError('Failed to load emojis.');
+        }
+      } finally {
+        setIsEmojiLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [emojiQuery, isEmojiOpen]);
+
   return (
     <div className="bg-background/95 px-6 py-4 backdrop-blur-lg">
       <div className="flex w-full min-h-[44px] items-center gap-2 rounded-full border border-transparent bg-muted/30 px-5 py-2 focus-within:border-primary/50 focus-within:bg-muted/50 transition-colors overflow-hidden">
-        <Popover>
+        <Popover open={isEmojiOpen} onOpenChange={setIsEmojiOpen}>
           <PopoverTrigger asChild>
             <button
               type="button"
@@ -57,18 +110,35 @@ export function MessageComposer({ onSend, isSending }: MessageComposerProps) {
               <Smile className="h-4 w-4" />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-56">
-            <div className="grid grid-cols-6 gap-2">
-              {emojiOptions.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  className="h-8 w-8 rounded-lg hover:bg-muted/60 text-lg"
-                  onClick={() => insertEmoji(emoji)}
-                >
-                  {emoji}
-                </button>
-              ))}
+          <PopoverContent className="w-72">
+            <div className="space-y-3">
+              <Input
+                value={emojiQuery}
+                onChange={(event) => setEmojiQuery(event.target.value)}
+                placeholder="Search emojis"
+                className="h-8 text-xs"
+              />
+              {isEmojiLoading ? (
+                <p className="text-xs text-muted-foreground">Loading emojis...</p>
+              ) : emojiError ? (
+                <p className="text-xs text-destructive">{emojiError}</p>
+              ) : emojiResults.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No emojis found.</p>
+              ) : (
+                <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-1">
+                  {emojiResults.map((item) => (
+                    <button
+                      key={`${item.hexcode}-${item.emoji}`}
+                      type="button"
+                      className="h-8 w-8 rounded-lg hover:bg-muted/60 text-lg"
+                      onClick={() => insertEmoji(item.emoji)}
+                      title={item.annotation}
+                    >
+                      {item.emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </PopoverContent>
         </Popover>
