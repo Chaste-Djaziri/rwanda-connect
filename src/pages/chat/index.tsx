@@ -89,8 +89,7 @@ export default function ChatPage() {
           <div className="flex items-center gap-3">
             <MobileMoreMenu />
             <div>
-            <h1 className="text-lg font-semibold text-foreground">Chat</h1>
-            <p className="text-sm text-muted-foreground">Direct messages on Bluesky</p>
+              <h1 className="text-lg font-semibold text-foreground">Chat</h1>
             </div>
           </div>
           <div className="flex items-center gap-3">
