@@ -166,7 +166,11 @@ export default function FeedPage() {
             <MobileMoreMenu />
           </div>
           <div className="flex justify-center">
-            <img src="/logo/dark-mode-logo.png" alt="HiiSide" className="h-auto w-auto scale-125" />
+            <img
+              src="/logo/dark-mode-logo.png"
+              alt="HiiSide"
+              className="h-auto w-auto max-h-6 max-w-6"
+            />
           </div>
           <div className="flex justify-end">
             <Button variant="ghost" size="icon" onClick={() => fetchFeed(true)} disabled={isRefreshing}>

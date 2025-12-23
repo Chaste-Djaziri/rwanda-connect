@@ -29,7 +29,11 @@ export default function Index() {
       <header className="relative z-10 px-6 py-5">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo/dark-mode-logo.png" alt="HiiSide" className="h-auto w-auto scale-125" />
+            <img
+              src="/logo/dark-mode-logo.png"
+              alt="HiiSide"
+              className="h-auto w-auto max-h-8 max-w-8"
+            />
             <span className="text-xl font-semibold text-foreground">HiiSide</span>
           </div>
           

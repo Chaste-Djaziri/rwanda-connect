@@ -87,7 +87,11 @@ export function LeftSidebar() {
         style={{ left: leftOffset }}
       >
         <div className="h-20 flex items-center px-3 xl:px-5">
-          <img src="/logo/dark-mode-logo.png" alt="HiiSide" className="h-auto w-auto scale-150" />
+          <img
+            src="/logo/dark-mode-logo.png"
+            alt="HiiSide"
+            className="h-auto w-auto max-h-10 max-w-10"
+          />
         </div>
         <div className="mt-6 px-3 xl:px-5">
           <h2 className="text-lg font-semibold text-foreground">Join the conversation</h2>
