@@ -9,26 +9,41 @@ interface MessageComposerProps {
   isSending: boolean;
 }
 
-interface EmojiFamilyItem {
-  emoji: string;
-  hexcode: string;
-  annotation: string;
+interface EmojiNinjaItem {
+  character: string;
+  code: string;
+  name: string;
   group: string;
   subgroup: string;
-  tags?: string[];
-  shortcodes?: string[];
+  image?: string;
 }
 
-const EMOJI_API_BASE = '/api/emoji';
+const EMOJI_API_BASE = 'https://api.api-ninjas.com/v1/emoji';
+const EMOJI_PAGE_SIZE = 30;
+const EMOJI_GROUPS = [
+  { value: 'smileys_emotion', label: 'Smileys' },
+  { value: 'people_body', label: 'People' },
+  { value: 'component', label: 'Component' },
+  { value: 'animals_nature', label: 'Animals' },
+  { value: 'food_drink', label: 'Food & Drink' },
+  { value: 'travel_places', label: 'Travel' },
+  { value: 'activities', label: 'Activities' },
+  { value: 'objects', label: 'Objects' },
+  { value: 'symbols', label: 'Symbols' },
+  { value: 'flags', label: 'Flags' },
+];
 
 export function MessageComposer({ onSend, isSending }: MessageComposerProps) {
   const [text, setText] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
   const [emojiQuery, setEmojiQuery] = useState('');
-  const [emojiResults, setEmojiResults] = useState<EmojiFamilyItem[]>([]);
+  const [emojiGroup, setEmojiGroup] = useState(EMOJI_GROUPS[0].value);
+  const [emojiResults, setEmojiResults] = useState<EmojiNinjaItem[]>([]);
   const [isEmojiLoading, setIsEmojiLoading] = useState(false);
   const [emojiError, setEmojiError] = useState<string | null>(null);
+  const [emojiOffset, setEmojiOffset] = useState(0);
+  const [emojiHasMore, setEmojiHasMore] = useState(false);
 
   const handleSend = () => {
     const trimmed = text.trim();
@@ -60,42 +75,49 @@ export function MessageComposer({ onSend, isSending }: MessageComposerProps) {
     });
   };
 
+  const fetchEmojis = async (nextOffset: number, append: boolean) => {
+    const apiKey = import.meta.env.VITE_API_NINJAS_KEY;
+    if (!apiKey) {
+      setEmojiError('Missing VITE_API_NINJAS_KEY.');
+      return;
+    }
+    setIsEmojiLoading(true);
+    setEmojiError(null);
+    try {
+      const params = new URLSearchParams();
+      if (emojiQuery.trim()) {
+        params.set('name', emojiQuery.trim());
+      } else {
+        params.set('group', emojiGroup);
+      }
+      params.set('offset', String(nextOffset));
+      const response = await fetch(`${EMOJI_API_BASE}?${params.toString()}`, {
+        headers: {
+          'X-Api-Key': apiKey,
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Emoji API request failed');
+      }
+      const data = (await response.json()) as EmojiNinjaItem[];
+      const normalized = Array.isArray(data) ? data.filter((item) => item?.character) : [];
+      setEmojiResults((prev) => (append ? [...prev, ...normalized] : normalized));
+      setEmojiHasMore(normalized.length >= EMOJI_PAGE_SIZE);
+    } catch {
+      setEmojiError('Failed to load emojis.');
+    } finally {
+      setIsEmojiLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isEmojiOpen) return;
-    const controller = new AbortController();
-    const timeout = window.setTimeout(async () => {
-      setIsEmojiLoading(true);
-      setEmojiError(null);
-      try {
-        const params = new URLSearchParams();
-        if (emojiQuery.trim()) {
-          params.set('search', emojiQuery.trim());
-        } else {
-          params.set('group', 'smileys-emotion');
-        }
-        params.set('includeVariations', 'true');
-        const response = await fetch(`${EMOJI_API_BASE}/emojis?${params.toString()}`, {
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          throw new Error('Emoji API request failed');
-        }
-        const data = (await response.json()) as EmojiFamilyItem[];
-        setEmojiResults(Array.isArray(data) ? data.filter((item) => item?.emoji) : []);
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          setEmojiError('Failed to load emojis.');
-        }
-      } finally {
-        setIsEmojiLoading(false);
-      }
+    const timeout = window.setTimeout(() => {
+      setEmojiOffset(0);
+      fetchEmojis(0, false);
     }, 250);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeout);
-    };
-  }, [emojiQuery, isEmojiOpen]);
+    return () => window.clearTimeout(timeout);
+  }, [emojiQuery, emojiGroup, isEmojiOpen]);
 
   return (
     <div className="bg-background/95 px-6 py-4 backdrop-blur-lg">
@@ -118,7 +140,18 @@ export function MessageComposer({ onSend, isSending }: MessageComposerProps) {
                 placeholder="Search emojis"
                 className="h-8 text-xs"
               />
-              {isEmojiLoading ? (
+              <select
+                value={emojiGroup}
+                onChange={(event) => setEmojiGroup(event.target.value)}
+                className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+              >
+                {EMOJI_GROUPS.map((group) => (
+                  <option key={group.value} value={group.value}>
+                    {group.label}
+                  </option>
+                ))}
+              </select>
+              {isEmojiLoading && emojiResults.length === 0 ? (
                 <p className="text-xs text-muted-foreground">Loading emojis...</p>
               ) : emojiError ? (
                 <p className="text-xs text-destructive">{emojiError}</p>
@@ -128,16 +161,32 @@ export function MessageComposer({ onSend, isSending }: MessageComposerProps) {
                 <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-1">
                   {emojiResults.map((item) => (
                     <button
-                      key={`${item.hexcode}-${item.emoji}`}
+                      key={`${item.code}-${item.character}`}
                       type="button"
                       className="h-8 w-8 rounded-lg hover:bg-muted/60 text-lg"
-                      onClick={() => insertEmoji(item.emoji)}
-                      title={item.annotation}
+                      onClick={() => insertEmoji(item.character)}
+                      title={item.name}
                     >
-                      {item.emoji}
+                      {item.character}
                     </button>
                   ))}
                 </div>
+              )}
+              {emojiHasMore && !emojiError && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    const next = emojiOffset + EMOJI_PAGE_SIZE;
+                    setEmojiOffset(next);
+                    fetchEmojis(next, true);
+                  }}
+                  disabled={isEmojiLoading}
+                >
+                  {isEmojiLoading ? 'Loading...' : 'Load more'}
+                </Button>
               )}
             </div>
           </PopoverContent>
