@@ -348,9 +348,11 @@ const renderRecordEmbed = (embed: any) => {
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <span className="font-semibold text-foreground inline-flex items-center gap-1">
           {author?.displayName || author?.handle || 'Post'}
-          {author?.verification?.verifiedStatus === 'valid' && (
-            <VerifiedBadge className="w-3.5 h-3.5 text-primary" />
-          )}
+          <VerifiedBadge
+            className="w-3.5 h-3.5 text-primary"
+            handle={author?.handle}
+            verified={author?.verification?.verifiedStatus === 'valid'}
+          />
         </span>
         {author?.handle && <span>@{author.handle}</span>}
       </div>
@@ -808,7 +810,11 @@ export function PostCard({
               className="font-semibold text-foreground truncate hover:underline flex items-center gap-1"
             >
               <span className="truncate">{post.author.displayName || post.author.handle}</span>
-              {post.author.verified && <VerifiedBadge className="w-4 h-4 text-primary" />}
+              <VerifiedBadge
+                className="w-4 h-4 text-primary"
+                handle={post.author.handle}
+                verified={post.author.verified}
+              />
             </Link>
             <Link
               to={`/profile/${post.author.handle}`}

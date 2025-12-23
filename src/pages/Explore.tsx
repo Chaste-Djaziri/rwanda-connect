@@ -56,7 +56,11 @@ function FeedCard({ feed }: { feed: SuggestedFeed }) {
             >
               @{feed.creator.handle}
             </Link>
-            {feed.creator?.verified && <VerifiedBadge className="w-3.5 h-3.5 text-primary" />}
+            <VerifiedBadge
+              className="w-3.5 h-3.5 text-primary"
+              handle={feed.creator?.handle}
+              verified={feed.creator?.verified}
+            />
           </p>
           {feed.description && (
             <p className="text-sm text-foreground/80 mt-1 line-clamp-2">{feed.description}</p>
@@ -94,7 +98,11 @@ function ActorCard({ actor }: { actor: SuggestedActor }) {
             <h3 className="font-semibold text-foreground truncate">
               {actor.displayName || actor.handle}
             </h3>
-            {actor.verified && <VerifiedBadge className="w-4 h-4 text-primary" />}
+            <VerifiedBadge
+              className="w-4 h-4 text-primary"
+              handle={actor.handle}
+              verified={actor.verified}
+            />
           </div>
           <p className="text-sm text-muted-foreground truncate">@{actor.handle}</p>
           {actor.description && (

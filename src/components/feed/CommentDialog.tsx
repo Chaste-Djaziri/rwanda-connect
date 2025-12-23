@@ -85,7 +85,11 @@ export function CommentDialog({
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-foreground truncate inline-flex items-center gap-1">
                   {post.author.displayName || post.author.handle}
-                  {post.author.verified && <VerifiedBadge className="w-3.5 h-3.5 text-primary" />}
+                  <VerifiedBadge
+                    className="w-3.5 h-3.5 text-primary"
+                    handle={post.author.handle}
+                    verified={post.author.verified}
+                  />
                 </p>
                 <p className="text-xs text-muted-foreground truncate">@{post.author.handle}</p>
                 <p className="text-sm text-foreground mt-2 whitespace-pre-wrap break-words">

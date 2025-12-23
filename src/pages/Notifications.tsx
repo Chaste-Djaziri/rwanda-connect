@@ -98,7 +98,11 @@ function NotificationItem({ notification }: { notification: Notification }) {
                   className="font-semibold text-foreground hover:underline inline-flex items-center gap-1"
                 >
                   <span>{notification.author.displayName || notification.author.handle}</span>
-                  {notification.author.verified && <VerifiedBadge className="w-3.5 h-3.5 text-primary" />}
+                  <VerifiedBadge
+                    className="w-3.5 h-3.5 text-primary"
+                    handle={notification.author.handle}
+                    verified={notification.author.verified}
+                  />
                 </Link>{' '}
                 <span className="text-muted-foreground">{label}</span>
               </p>

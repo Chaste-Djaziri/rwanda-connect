@@ -46,7 +46,11 @@ export function ConversationRow({ convo, isActive, currentUserDid }: Conversatio
         <div className="flex items-center gap-2">
           <p className="font-semibold text-foreground truncate inline-flex items-center gap-1">
             {other?.displayName || other?.handle || 'Conversation'}
-            {other?.verified && <VerifiedBadge className="w-3.5 h-3.5 text-primary" />}
+            <VerifiedBadge
+              className="w-3.5 h-3.5 text-primary"
+              handle={other?.handle}
+              verified={other?.verified}
+            />
           </p>
           {convo.status === 'request' && (
             <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-primary/10 text-primary">

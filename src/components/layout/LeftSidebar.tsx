@@ -117,7 +117,11 @@ export function LeftSidebar() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1">
                       <p className="font-semibold truncate">{user?.displayName || user?.handle || 'Account'}</p>
-                      {user?.verified && <VerifiedBadge className="w-4 h-4 text-primary" />}
+                      <VerifiedBadge
+                        className="w-4 h-4 text-primary"
+                        handle={user?.handle}
+                        verified={user?.verified}
+                      />
                     </div>
                     {user?.handle && <p className="text-xs text-muted-foreground truncate">@{user.handle}</p>}
                   </div>

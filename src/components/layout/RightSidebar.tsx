@@ -176,9 +176,11 @@ export function RightSidebar() {
                           <p className="text-sm font-medium text-foreground truncate">
                             {actor.displayName || actor.handle}
                           </p>
-                          {actor.verification?.verifiedStatus === 'valid' && (
-                            <VerifiedBadge className="w-3.5 h-3.5 text-primary" />
-                          )}
+                          <VerifiedBadge
+                            className="w-3.5 h-3.5 text-primary"
+                            handle={actor.handle}
+                            verified={actor.verification?.verifiedStatus === 'valid'}
+                          />
                         </div>
                         <p className="text-xs text-muted-foreground truncate">@{actor.handle}</p>
                       </div>
@@ -240,7 +242,11 @@ export function RightSidebar() {
                               <p className="font-medium text-sm text-foreground truncate">
                                 {other?.displayName || other?.handle || 'Conversation'}
                               </p>
-                              {other?.verified && <VerifiedBadge className="w-3.5 h-3.5 text-primary" />}
+                              <VerifiedBadge
+                                className="w-3.5 h-3.5 text-primary"
+                                handle={other?.handle}
+                                verified={other?.verified}
+                              />
                             </div>
                             <p className="text-xs text-muted-foreground truncate">
                               {convo.lastMessage?.text ||
